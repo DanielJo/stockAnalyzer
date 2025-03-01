@@ -1,0 +1,2 @@
+rem *
+java -jar StockAnalyzer.jar name_bmw time_30 macd_12_26_9

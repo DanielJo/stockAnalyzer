@@ -1,0 +1,21 @@
+﻿name 'symbol'
+time 'interval' (optional) starttime endtime opt_für_aufgefüllt_od_nicht 0 = aufgefüllt, 1 = nicht aufgefüllt
+ta_rsi 'smooth' 'period'
+ta_ema 'period'
+ta_sma 'period'
+ta_macd 'fast' 'slow' 'smooth'
+ta_ad keine parameter
+delimiter
+
+pivot
+rvi_'period'
+zz_'threshold'
+
+Beispiel:
+
+rem*
+java -jar StockAnalyzer.jar name_bmw time_30 macd_12_26_9
+
+oder 
+
+java -jar StockAnalyzer.jar name_bmw time_30_08:30_16:30 ema_9
