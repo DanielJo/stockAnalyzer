@@ -1,13 +1,12 @@
 rem Maven/Spring Boot build:
 mvn clean package
 
-rem Required environment variables (no defaults are committed - the app fails fast if unset):
-rem   DB_URL       e.g. jdbc:mysql://host:3306/schema
-rem   DB_USERNAME
-rem   DB_PASSWORD
+rem Bars are read from a CSV file - no database, no env vars needed anymore.
+rem CSV format: <ignored>;<dateTime dd.MM.yyyy HH:mm:ss>;<open>;<high>;<low>;<close>;<volume>
+rem (first line is treated as a header and skipped)
 
 rem Run via the packaged jar:
-java -jar target/stock-analyzer.jar name_bmw time_30 macd_12_26_9
+java -jar target/stock-analyzer.jar name_bmw time_30 csv_bmw_1min.csv ta_macd_12_26_9
 
 rem or via the Maven plugin during development:
-mvn spring-boot:run -Dspring-boot.run.arguments="name_bmw time_30 macd_12_26_9"
+mvn spring-boot:run -Dspring-boot.run.arguments="name_bmw time_30 csv_bmw_1min.csv ta_macd_12_26_9"

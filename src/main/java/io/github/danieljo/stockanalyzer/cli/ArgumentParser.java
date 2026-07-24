@@ -3,20 +3,36 @@ package io.github.danieljo.stockanalyzer.cli;
 import io.github.danieljo.stockanalyzer.indicator.TALibCalculationService;
 
 /**
- * Replaces ParseCommandLine.java. Parsing is now split into two phases, same as before:
+ * Replaces ParseCommandLine.java. Parsing is now split into three phases:
  * <ol>
  *   <li>{@link #parseNameAndTime(String[])} resolves the {@code name_}/{@code time_} tokens
  *   into an {@link AnalysisRequest}. Unlike the original {@code setTimeName}, this is now pure
- *   parsing with no database access (that moved to StockDataService) and does a single clean
- *   pass over the arguments instead of the original's unbounded {@code while(!isSet)} loop,
- *   which would spin forever on malformed input missing {@code name_}/{@code time_}.</li>
+ *   parsing with no database access and does a single clean pass over the arguments instead of
+ *   the original's unbounded {@code while(!isSet)} loop, which would spin forever on malformed
+ *   input missing {@code name_}/{@code time_}.</li>
+ *   <li>{@link #parseCsvPath(String[])} resolves the {@code csv_<path>} token - the input file
+ *   is now the sole data source (the DB is gone). This can't reuse the generic {@code "_"}-split
+ *   dispatch the other tokens use, since a file path routinely contains underscores, colons or
+ *   slashes that splitting would mangle - so it just takes everything after the {@code csv_}
+ *   prefix as-is.</li>
  *   <li>{@link #parseOptions(String[], AnalysisRequest)} processes the remaining tokens
  *   (delimiter/pivot/rvi/zz/ta/file), same as the original {@code parseCL}.</li>
  * </ol>
  */
 public final class ArgumentParser {
 
+	private static final String CSV_PREFIX = "csv_";
+
 	private ArgumentParser() {
+	}
+
+	public static String parseCsvPath(String[] args) {
+		for (String s : args) {
+			if (s.length() > CSV_PREFIX.length() && s.regionMatches(true, 0, CSV_PREFIX, 0, CSV_PREFIX.length())) {
+				return s.substring(CSV_PREFIX.length());
+			}
+		}
+		throw new IllegalArgumentException("csv_<path> argument is required");
 	}
 
 	public static AnalysisRequest parseNameAndTime(String[] args) {
@@ -123,6 +139,8 @@ public final class ArgumentParser {
 				// already handled by parseNameAndTime
 			} else if (arguments[0].equalsIgnoreCase("time")) {
 				// already handled by parseNameAndTime
+			} else if (arguments[0].equalsIgnoreCase("csv")) {
+				// already handled by parseCsvPath
 			} else if (arguments[0].equalsIgnoreCase("file")) {
 				String temp;
 				if (arguments.length > 2) {

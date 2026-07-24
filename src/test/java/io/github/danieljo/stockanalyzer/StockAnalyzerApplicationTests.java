@@ -4,9 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * Smoke test: confirms the Spring context (incl. the JPA entities/repositories) wires up and
- * the DDL for SymbolEntity/IntervalEntity/StockDataEntity is valid, against an in-memory H2
- * database (src/test/resources/application.yml) instead of the real MySQL instance.
+ * Smoke test: confirms the Spring context wires up cleanly (MarketDataService,
+ * CommandLineRunner, etc.) - no database involved anymore.
  */
 @SpringBootTest
 class StockAnalyzerApplicationTests {
