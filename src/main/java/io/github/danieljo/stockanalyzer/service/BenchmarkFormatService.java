@@ -1,11 +1,11 @@
-package analyzer;
+package io.github.danieljo.stockanalyzer.service;
 
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BenchmarkFormat {
+public class BenchmarkFormatService {
 	static int j = 1;
 	static int k = 1;
 	private static DecimalFormat f = new DecimalFormat("#0.00");

@@ -1,9 +1,9 @@
-package Indicator;
+package io.github.danieljo.stockanalyzer.indicator;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-import analyzer.ParseCsv;
+import io.github.danieljo.stockanalyzer.service.CsvImportService;
 
 
 public class Pivot {
@@ -29,26 +29,26 @@ public class Pivot {
 //		currentHigh = RVI.High.get(i);
 //		currentLow = RVI.Low.get(i);
 //		currentClose = RVI.Close.get(i);
-//		currentHigh = Double.parseDouble(ParseCsv.stockList.get(i).getHigh().replace(",", "."));
-//		currentLow = Double.parseDouble(ParseCsv.stockList.get(i).getLow().replace(",", "."));
-//		currentClose = Double.parseDouble(ParseCsv.stockList.get(i).getClose().replace(",", "."));
+//		currentHigh = Double.parseDouble(CsvImportService.stockList.get(i).getHigh().replace(",", "."));
+//		currentLow = Double.parseDouble(CsvImportService.stockList.get(i).getLow().replace(",", "."));
+//		currentClose = Double.parseDouble(CsvImportService.stockList.get(i).getClose().replace(",", "."));
 		
 		pp_pp = (currentHigh + currentLow + currentClose) / 3;
-		ParseCsv.stockList.get(i).setPP_pp(pp_pp);
+		CsvImportService.stockList.get(i).setPP_pp(pp_pp);
 		PP_PP.add(pp_pp);
 		pp_pp_l.add(pp_pp);
 	}
 	public static void getS1(int i, Double currentHigh){
 		//currentHigh = RVI.High.get(i);
 		pp_s1 = (2 * PP_PP.get(i) - currentHigh);
-		ParseCsv.stockList.get(i).setPP_s1(pp_s1);
+		CsvImportService.stockList.get(i).setPP_s1(pp_s1);
 		//PP_S1.add(pp_s1);
 		pp_s1_l.add(pp_s1);
 	}
 	public static void getR1(int i, Double currentLow){
 		//currentLow = RVI.Low.get(i);
 		pp_r1 = (2 * PP_PP.get(i) - currentLow);
-		ParseCsv.stockList.get(i).setPP_r1(pp_r1);
+		CsvImportService.stockList.get(i).setPP_r1(pp_r1);
 		//PP_R1.add(pp_r1);
 		pp_r1_l.add(pp_r1);
 	}
@@ -56,7 +56,7 @@ public class Pivot {
 //		currentHigh = RVI.High.get(i);
 //		currentLow = RVI.Low.get(i);
 		pp_s2 = PP_PP.get(i) - (currentHigh - currentLow);
-		ParseCsv.stockList.get(i).setPP_s2(pp_s2);
+		CsvImportService.stockList.get(i).setPP_s2(pp_s2);
 		//PP_S2.add(pp_s2);
 		pp_s2_l.add(pp_s2);
 	}
@@ -64,7 +64,7 @@ public class Pivot {
 //		currentHigh = RVI.High.get(i);
 //		currentLow = RVI.Low.get(i);
 		pp_r2 = PP_PP.get(i) + (currentHigh - currentLow);
-		ParseCsv.stockList.get(i).setPP_r2(pp_r2);
+		CsvImportService.stockList.get(i).setPP_r2(pp_r2);
 		//PP_R2.add(pp_r2);
 		pp_r2_l.add(pp_r2);
 	}
@@ -72,7 +72,7 @@ public class Pivot {
 //		currentHigh = RVI.High.get(i);
 //		currentLow = RVI.Low.get(i);
 		pp_s3 = pp_pp - 2 * (currentHigh - currentLow);
-		ParseCsv.stockList.get(i).setPP_s3(pp_s3);
+		CsvImportService.stockList.get(i).setPP_s3(pp_s3);
 		//PP_S3.add(pp_s3);
 		pp_s3_l.add(pp_s3);
 	}
@@ -80,7 +80,7 @@ public class Pivot {
 //		currentHigh = RVI.High.get(i);
 //		currentLow = RVI.Low.get(i);
 		pp_r3 = pp_pp + 2 * (currentHigh - currentLow);
-		ParseCsv.stockList.get(i).setPP_r3(pp_r3);
+		CsvImportService.stockList.get(i).setPP_r3(pp_r3);
 		//PP_R3.add(pp_r3);
 		pp_r3_l.add(pp_r3);
 	}

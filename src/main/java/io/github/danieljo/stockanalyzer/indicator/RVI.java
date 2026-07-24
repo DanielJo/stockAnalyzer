@@ -1,9 +1,9 @@
-package Indicator;
+package io.github.danieljo.stockanalyzer.indicator;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-import analyzer.ParseCsv;
+import io.github.danieljo.stockanalyzer.service.CsvImportService;
 
 public class RVI {
 	private static double Value1;
@@ -54,8 +54,8 @@ public class RVI {
 				tempSig = ((RVI1.get(k) + 2 * RVI1.get(k-1) + 2 * RVI1.get(k-2) + RVI1.get(k-3))/6 * 100);
 				tempdifference = RVI1.get(k) * 100 - tempSig;
 				Difference = tempdifference;
-				ParseCsv.stockList.get(i).setRVI(RVI);
-				ParseCsv.stockList.get(i).setRVI_Difference(Difference);
+				CsvImportService.stockList.get(i).setRVI(RVI);
+				CsvImportService.stockList.get(i).setRVI_Difference(Difference);
 				rvi_l.add(RVI);
 				rvi_diff_l.add(Difference);
 			}else{

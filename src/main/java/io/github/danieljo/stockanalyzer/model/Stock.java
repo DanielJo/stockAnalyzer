@@ -1,4 +1,4 @@
-package analyzer;
+package io.github.danieljo.stockanalyzer.model;
 public class Stock {
 	private String DateTime;
 	private String Symbol;

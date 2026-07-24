@@ -85,6 +85,15 @@ nb-configuration.xml
 .DS_Store
 
 ##############################
+## Local secrets / config overrides
+##############################
+.env
+.env.*
+application-local.yml
+application-local.yaml
+application-local.properties
+
+##############################
 ## Miscellaneous
 ##############################
 *.log
