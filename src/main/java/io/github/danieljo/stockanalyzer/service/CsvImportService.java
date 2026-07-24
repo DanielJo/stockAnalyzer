@@ -1,10 +1,14 @@
 package io.github.danieljo.stockanalyzer.service;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,8 +16,11 @@ import io.github.danieljo.stockanalyzer.cli.AnalysisRequest;
 import io.github.danieljo.stockanalyzer.model.Stock;
 
 /**
- * Replaces ParseCsv.java. Still the dead CSV-import path (never called from
- * StockAnalyzerApplication, same as in the original), kept for parity/future use.
+ * Replaces ParseCsv.java - now the only bar data source (the DB path is gone). Parsing itself
+ * ({@link #importFromStream}) takes a plain {@link InputStream} rather than a file path, so a
+ * future REST endpoint can feed it a {@code MultipartFile}'s stream (or any other source)
+ * without touching this class - only the CLI-specific {@link #importFromFile} wrapper needs to
+ * know about the filesystem.
  * <p>
  * {@link #stockList} intentionally stays a static, shared list of bars for now (same as the
  * original {@code ParseCsv.stockList}) since {@code TALibCalculationService}, the indicator
@@ -22,19 +29,37 @@ import io.github.danieljo.stockanalyzer.model.Stock;
  */
 public class CsvImportService {
 
+	private static final DateTimeFormatter INPUT_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+	private static final DateTimeFormatter STORED_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
 	public static List<Stock> stockList = new ArrayList<>();
 
-	public static void readFile(String fileUrl, AnalysisRequest request) throws IOException {
-		try (BufferedReader br = new BufferedReader(new FileReader(fileUrl))) {
-			br.readLine();
-			String line;
-			while ((line = br.readLine()) != null) {
-				splitLine(line, request);
-			}
+	/** CLI convenience: resolves a file path to a stream, then delegates to {@link #importFromStream}. */
+	public static List<Stock> importFromFile(String fileUrl, AnalysisRequest request) throws IOException {
+		try (InputStream in = new FileInputStream(fileUrl)) {
+			return importFromStream(in, request);
 		}
 	}
 
-	public static void splitLine(String line, AnalysisRequest request) throws IOException {
+	/**
+	 * Core parsing logic, source-agnostic. Closes {@code in} when done.
+	 * Expected format per line: {@code <ignored>;<dateTime>;<open>;<high>;<low>;<close>;<volume>},
+	 * first line treated as a header and skipped.
+	 */
+	public static List<Stock> importFromStream(InputStream in, AnalysisRequest request) throws IOException {
+		List<Stock> imported = new ArrayList<>();
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+			br.readLine();
+			String line;
+			while ((line = br.readLine()) != null) {
+				imported.add(parseLine(line, request));
+			}
+		}
+		stockList = imported;
+		return imported;
+	}
+
+	private static Stock parseLine(String line, AnalysisRequest request) {
 		String[] tokens = line.split(";");
 		String dateTime = tokens[1];
 		String open = tokens[2];
@@ -43,19 +68,13 @@ public class CsvImportService {
 		String close = tokens[5];
 		String volume = tokens[6];
 
-		String oldFormat = "dd.MM.yyyy HH:mm:ss";
-		String newFormat = "yyyy-MM-dd HH:mm:ss";
 		String formattedTime = null;
-		SimpleDateFormat sdf1 = new SimpleDateFormat(oldFormat);
-		SimpleDateFormat sdf2 = new SimpleDateFormat(newFormat);
 		try {
-			formattedTime = sdf2.format(sdf1.parse(dateTime));
-		} catch (ParseException e) {
+			formattedTime = LocalDateTime.parse(dateTime, INPUT_DATE_FORMAT).format(STORED_DATE_FORMAT);
+		} catch (DateTimeParseException e) {
 			e.printStackTrace();
 		}
 
-		Stock stock = new Stock(formattedTime, request.getSymbol(), request.getInterval(), open, high, low, close,
-				volume);
-		stockList.add(stock);
+		return new Stock(formattedTime, request.getSymbol(), request.getInterval(), open, high, low, close, volume);
 	}
 }
