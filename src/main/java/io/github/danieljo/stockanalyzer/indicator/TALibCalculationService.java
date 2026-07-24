@@ -1,12 +1,9 @@
-package analyzer;
+package io.github.danieljo.stockanalyzer.indicator;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import Indicator.Pivot;
-import Indicator.RVI;
-import Indicator.ZigZag;
 
 import com.tictactec.ta.lib.CandleSettingType;
 import com.tictactec.ta.lib.Core;
@@ -14,11 +11,13 @@ import com.tictactec.ta.lib.MAType;
 import com.tictactec.ta.lib.MInteger;
 import com.tictactec.ta.lib.RetCode;
 
+import io.github.danieljo.stockanalyzer.service.CsvImportService;
+
 /**
  * @author Frejia
  * 
  */
-public class TALibCalls {
+public class TALibCalculationService {
 	private static double resultSetD1[];
 	private static double resultSetD2[];
 	private static double resultSetD3[];
@@ -186,14 +185,14 @@ public class TALibCalls {
 	private static double[] wma;
 	private static int[] cdl3stars;
 
-	public TALibCalls(double[] open, double[] close, double[] high,
+	public TALibCalculationService(double[] open, double[] close, double[] high,
 			double[] low, double[] volume2) {
 		super();
-		TALibCalls.open = open;
-		TALibCalls.close = close;
-		TALibCalls.high = high;
-		TALibCalls.low = low;
-		TALibCalls.volume = volume2;
+		TALibCalculationService.open = open;
+		TALibCalculationService.close = close;
+		TALibCalculationService.high = high;
+		TALibCalculationService.low = low;
+		TALibCalculationService.volume = volume2;
 
 		begin = new MInteger();
 		length = new MInteger();
@@ -209,7 +208,7 @@ public class TALibCalls {
 	public static void writeExt(double[] tempRS) {
 		List<Double> tempList = new ArrayList<>();
 		int j = 0;
-		for (int i = 0; i < ParseCsv.stockList.size(); i++) {
+		for (int i = 0; i < CsvImportService.stockList.size(); i++) {
 			if (i > lookback) {
 				tempList.add(tempRS[j++]);
 			} else {
@@ -222,7 +221,7 @@ public class TALibCalls {
 	public static void writeExt(int[] tempRS) {
 		List<Double> tempList = new ArrayList<>();
 		int j = 0;
-		for (int i = 0; i < ParseCsv.stockList.size(); i++) {
+		for (int i = 0; i < CsvImportService.stockList.size(); i++) {
 			if (i > lookback) {
 				tempList.add((double) tempRS[j++]);
 			} else {
@@ -236,7 +235,7 @@ public class TALibCalls {
 		resultSet.add(tempRS);
 	}
 
-	public static double extractValueD(int i, String[] arguments){
+	public static double extractValueD(int i, String[] arguments, io.github.danieljo.stockanalyzer.cli.AnalysisRequest request){
 		double value;
 		try{
 			value = Double.parseDouble(arguments[i]);
@@ -244,12 +243,12 @@ public class TALibCalls {
 		      value = 0.0;
 		      error = "wrong value format at " + arguments[1] + "; Value set to 0.0";
 		      System.out.println(error);
-		      StockAnalyzer.setError(error);
+		      request.addError(error);
 	    }
 		return value;
 	}
 	
-	public static int extractValueI(int i, String[] arguments){
+	public static int extractValueI(int i, String[] arguments, io.github.danieljo.stockanalyzer.cli.AnalysisRequest request){
 		int value;
 		try{
 			value = Integer.parseInt(arguments[i]);
@@ -257,47 +256,47 @@ public class TALibCalls {
 		      value = 0;
 		      error = "wrong value format at " + arguments[1] + "; Value set to 0";
 		      System.out.println(error);
-		      StockAnalyzer.setError(error);
+		      request.addError(error);
 	    }
 		return value;
 	}
 	
-	public static void methodCall(String[] arguments) {
+	public static void methodCall(String[] arguments, io.github.danieljo.stockanalyzer.cli.AnalysisRequest request) {
 		if (arguments[1].equalsIgnoreCase("ema")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("EMA_" + period);
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("EMA_" + period);
 				System.out.println("Calculating EMA");
 				writeExt(calcEMA(period));
 				indCount++;
 				// writeToList(arguments[1], calcEMA(period));
 			} else {
 				error = "EMA parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("sma")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("SMA_" + period);
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("SMA_" + period);
 				System.out.println("Calculating SMA");
 				writeExt(calcSMA(period));
 				indCount++;
 				// writeToList(arguments[1], calcSMA(period));
 			} else {
 				error = "SMA parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("rsi")) {
 			if (arguments.length == 4) {
 //				int period = Integer.parseInt(arguments[2]);
 //				int smooth = Integer.parseInt(arguments[3]);
-				int period = extractValueI(2, arguments);
-				int smooth = extractValueI(3, arguments);
-				WriteCsv.indicators.add("RSI_" + period + "_" + smooth
+				int period = extractValueI(2, arguments, request);
+				int smooth = extractValueI(3, arguments, request);
+				request.getIndicators().add("RSI_" + period + "_" + smooth
 						+ "_(14_3)");
 				System.out.println("Calculating RSI");
 				writeExt(calcRSI(period, smooth));
@@ -305,7 +304,7 @@ public class TALibCalls {
 				// writeToList(arguments[1], calcRSI(period, smooth));
 			} else {
 				error = "RSI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("macd")) {
@@ -313,10 +312,10 @@ public class TALibCalls {
 //				int fast = Integer.parseInt(arguments[2]);
 //				int slow = Integer.parseInt(arguments[3]);
 //				int smooth = Integer.parseInt(arguments[4]);
-				int fast = extractValueI(2, arguments);
-				int slow = extractValueI(3, arguments);
-				int smooth = extractValueI(4, arguments);
-				WriteCsv.indicators.add("MACD_" + fast + "_" + slow + "_"
+				int fast = extractValueI(2, arguments, request);
+				int slow = extractValueI(3, arguments, request);
+				int smooth = extractValueI(4, arguments, request);
+				request.getIndicators().add("MACD_" + fast + "_" + slow + "_"
 						+ smooth + "_(12_26_9)");
 				System.out.println("Calculating MACD");
 				writeExt(calcMACD(fast, slow, smooth));
@@ -324,84 +323,84 @@ public class TALibCalls {
 				// writeToList(arguments[1], calcMACD(fast, slow, smooth));
 			} else {
 				error = "MACD parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("ad")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("AD");
+				request.getIndicators().add("AD");
 				System.out.println("Calculating AD");
 				writeExt(calcAD());
 				indCount++;
 			} else {
 				error = "AD parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("adosc")) {
 			if (arguments.length == 4) {
 //				int fast = Integer.parseInt(arguments[2]);
 //				int slow = Integer.parseInt(arguments[3]);
-				int fast = extractValueI(2, arguments);
-				int slow = extractValueI(3, arguments);
-				WriteCsv.indicators.add("adosc_" + fast + "_" + slow
+				int fast = extractValueI(2, arguments, request);
+				int slow = extractValueI(3, arguments, request);
+				request.getIndicators().add("adosc_" + fast + "_" + slow
 						+ "_(3_10)");
 				System.out.println("Calculating ADOSC");
 				writeExt(calcADOSC(fast, slow));
 				indCount++;
 			} else {
 				error = "ADOSC parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("adx")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("adx_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("adx_" + period + "_(14)");
 				System.out.println("Calculating ADX");
 				writeExt(calcADX(period));
 				indCount++;
 			} else {
 				error = "ADX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("adxr")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("adxr_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("adxr_" + period + "_(14)");
 				System.out.println("Calculating ADXR");
 				writeExt(calcADXR(period));
 				indCount++;
 			} else {
 				error = "ADX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("apo")) {
 			if (arguments.length == 4) {
 //				int fastperiod = Integer.parseInt(arguments[2]);
 //				int slowperiod = Integer.parseInt(arguments[3]);
-				int fastperiod = extractValueI(2, arguments);
-				int slowperiod = extractValueI(3, arguments);
-				WriteCsv.indicators.add("apo_" + fastperiod + "_" + slowperiod
+				int fastperiod = extractValueI(2, arguments, request);
+				int slowperiod = extractValueI(3, arguments, request);
+				request.getIndicators().add("apo_" + fastperiod + "_" + slowperiod
 						+ "_(12_26)");
 				System.out.println("Calculating APO");
 				writeExt(calcAPO(fastperiod, slowperiod));
 				indCount++;
 			} else {
 				error = "APO parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("aroon")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("aroon_down_" + period + "_(14)");
-				WriteCsv.indicators.add("aroon_up");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("aroon_down_" + period + "_(14)");
+				request.getIndicators().add("aroon_up");
 				System.out.println("Calculating AROON");
 				calcAROON(period);
 				indCount = indCount + 2;
@@ -409,44 +408,44 @@ public class TALibCalls {
 				writeExt(aroonOutputUp);
 			} else {
 				error = "AROON parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("aroonosc")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("aroonosc_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("aroonosc_" + period + "_(14)");
 				System.out.println("Calculating AROONOSC");
 				indCount++;
 				writeExt(calcAROONOSC(period));
 			} else {
 				error = "AROONOSC parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("atr")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("atr_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("atr_" + period + "_(14)");
 				System.out.println("Calculating ATR");
 				indCount++;
 				writeExt(calcATR(period));
 			} else {
 				error = "ATR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("avgprice")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("avgprice");
+				request.getIndicators().add("avgprice");
 				System.out.println("Calculating AVGPRICE");
 				indCount++;
 				writeExt(calcAVGPRICE());
 			} else {
 				error = "AVGPRICE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("bbands")) {
@@ -454,13 +453,13 @@ public class TALibCalls {
 //				int period = Integer.parseInt(arguments[2]);
 //				double upperLimit = Double.parseDouble(arguments[3]);
 //				double lowerLimit = Double.parseDouble(arguments[3]);
-				int period = extractValueI(2, arguments);
-				double upperLimit = extractValueD(3, arguments);
-				double lowerLimit = extractValueD(4, arguments);
-				WriteCsv.indicators.add("BBANDS_UpperBand_" + period + "_"
+				int period = extractValueI(2, arguments, request);
+				double upperLimit = extractValueD(3, arguments, request);
+				double lowerLimit = extractValueD(4, arguments, request);
+				request.getIndicators().add("BBANDS_UpperBand_" + period + "_"
 						+ upperLimit + "_" + lowerLimit + "_(5_2_2)");
-				WriteCsv.indicators.add("BBANDS_Middleband");
-				WriteCsv.indicators.add("BBANDS_Lowerband");
+				request.getIndicators().add("BBANDS_Middleband");
+				request.getIndicators().add("BBANDS_Lowerband");
 				System.out.println("Calculating BBANDS");
 				indCount = indCount + 3;
 				calcBBANDS(period, upperLimit, lowerLimit);
@@ -469,789 +468,789 @@ public class TALibCalls {
 				writeExt(bbandsOutRealLowerBand);
 			} else {
 				error = "BBANDS parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("bop")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("BOP");
+				request.getIndicators().add("BOP");
 				System.out.println("Calculating BOP");
 				indCount++;
 				writeExt(calcBOP());
 			} else {
 				error = "BOP parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cci")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("CCI_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("CCI_" + period + "_(14)");
 				System.out.println("Calculating CCI");
 				indCount++;
 				writeExt(calcCCI(period));
 			} else {
 				error = "CCI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdl2crows")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdl2crows");
+				request.getIndicators().add("cdl2crows");
 				System.out.println("Calculating CDL2CROWS");
 				indCount++;
 				writeExt(calcCDL2CROWS());
 			} else {
 				error = "CDL2CROWS parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdl3blackcrows")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdl3blackcrows");
+				request.getIndicators().add("cdl3blackcrows");
 				System.out.println("Calculating CDL3BLACKCROWS");
 				indCount++;
 				writeExt(calcCDL3BLACKCROWS());
 			} else {
 				error = "CDL3BLACKCROWS parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdl3inside")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdl3inside");
+				request.getIndicators().add("cdl3inside");
 				System.out.println("Calculating CDL3INSIDE");
 				indCount++;
 				writeExt(calcCDL3INSIDE());
 			} else {
 				error = "CDL3INSIDE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdl3linestrike")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdl3linestrike");
+				request.getIndicators().add("cdl3linestrike");
 				System.out.println("Calculating CDL3LINESTRIKE");
 				indCount++;
 				writeExt(calcCDL3LINESTRIKE());
 			} else {
 				error = "CDL3LINESTRIKE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdl3outside")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdl3outside");
+				request.getIndicators().add("cdl3outside");
 				System.out.println("Calculating CDL3OUTSIDE");
 				indCount++;
 				writeExt(calcCDL3OUTSIDE());
 			} else {
 				error = "CDL3OUTSIDE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdl3starsinsouth")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdl3starsinsouth");
+				request.getIndicators().add("cdl3starsinsouth");
 				System.out.println("Calculating CDL3STARINSOUTH");
 				indCount++;
 				writeExt(calcCDL3STARSINSOUTH());
 			} else {
 				error = "CDL3STARSINSOUTH parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdl3whitesoldiers")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdl3whitesoldiers");
+				request.getIndicators().add("cdl3whitesoldiers");
 				System.out.println("Calculating CDL3WHITESOLDIERS");
 				indCount++;
 				writeExt(calcCDL3WHITESOLDIERS());
 			} else {
 				error = "CDL3WHITESOLDIERS parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlabandonedbaby")) {
 			if (arguments.length == 3) {
 				//double penetration = Double.parseDouble(arguments[2]);
-				double penetration = extractValueD(2, arguments);
-				WriteCsv.indicators.add("cdlabandonedbaby_" + penetration
+				double penetration = extractValueD(2, arguments, request);
+				request.getIndicators().add("cdlabandonedbaby_" + penetration
 						+ "_(0.3)");
 				System.out.println("Calculating CDLABANDONEDBABY");
 				indCount++;
 				writeExt(calcCDLABANDONEDBABY(penetration));
 			} else {
 				error = "CDLABANDONEDBABY parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdladvancedblock")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdladvancedblock");
+				request.getIndicators().add("cdladvancedblock");
 				System.out.println("Calculating CDLADVANCEDBLOCK");
 				indCount++;
 				writeExt(calcCDLADVANCEBLOCK());
 			} else {
 				error = "CDLADVANCEDBLOCK parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlbelthold")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlbelthold");
+				request.getIndicators().add("cdlbelthold");
 				System.out.println("Calculating CDLBELTHOLD");
 				indCount++;
 				writeExt(calcCDLBELTHOLD());
 			} else {
 				error = "CDLBELTHOLD parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlbreakaway")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlbreakaway");
+				request.getIndicators().add("cdlbreakaway");
 				System.out.println("Calculating CDLBREAKAWAY");
 				indCount++;
 				writeExt(calcCDLBREAKAWAY());
 			} else {
 				error = "CDLBREAKAWAY parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlclosingmarubozu")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlclosingmarubozu");
+				request.getIndicators().add("cdlclosingmarubozu");
 				System.out.println("Calculating CDLCLOSINGMARUBOZU");
 				indCount++;
 				writeExt(calcCDLCLOSINGMARUBOZU());
 			} else {
 				error = "CDLCLOSINGMARUBOZU parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlconcealbabysw")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlconcealbabyswall");
+				request.getIndicators().add("cdlconcealbabyswall");
 				System.out.println("Calculating CDLCONCEALBABYSWALLOW");
 				indCount++;
 				writeExt(calcCDLCONCEALBABYSWALL());
 			} else {
 				error = "CDLCONCEALBABYSWALL parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlcounterattack")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlcounterattack");
+				request.getIndicators().add("cdlcounterattack");
 				System.out.println("Calculating CDLCOUNTERATTACK");
 				indCount++;
 				writeExt(calcCDLCOUNTERATTACK());
 			} else {
 				error = "CDLCOUNTERATTACK parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdldarkcloudcover")) {
 			if (arguments.length == 3) {
 				//double penetration = Double.parseDouble(arguments[2]);
-				double penetration = extractValueD(2, arguments);
-				WriteCsv.indicators.add("cdldarkcloudcover_" + penetration
+				double penetration = extractValueD(2, arguments, request);
+				request.getIndicators().add("cdldarkcloudcover_" + penetration
 						+ "_(0.5)");
 				System.out.println("Calculating CDLDARKCLOUDCOVER");
 				indCount++;
 				writeExt(calcCDLDARKCLOUDCOVER(penetration));
 			} else {
 				error = "CDLDARKCLOUDCOVER parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdldoji")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdldoji");
+				request.getIndicators().add("cdldoji");
 				System.out.println("Calculating CDLDOJI");
 				indCount++;
 				writeExt(calcCDLDOJI());
 			} else {
 				error = "CDLDOJI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdldojistar")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdldojistar");
+				request.getIndicators().add("cdldojistar");
 				System.out.println("Calculating CDLDOJISTAR");
 				indCount++;
 				writeExt(calcCDLDOJISTAR());
 			} else {
 				error = "CDLDOJISTAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdldragonflydoji")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdldragonflydoji");
+				request.getIndicators().add("cdldragonflydoji");
 				System.out.println("Calculating CDLDRAGONFLYDOJI");
 				indCount++;
 				writeExt(calcCDLDRAGONFLYDOJI());
 			} else {
 				error = "CDLDRAGONFLYDOJI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlengulfing")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlengulfing");
+				request.getIndicators().add("cdlengulfing");
 				System.out.println("Calculating CDLENGULFING");
 				indCount++;
 				writeExt(calcCDLENGULFING());
 			} else {
 				error = "CDLENGULFING parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdleveningdojistar")) {
 			if (arguments.length == 3) {
 				//double penetration = Double.parseDouble(arguments[2]);
-				double penetration = extractValueD(2, arguments);
-				WriteCsv.indicators.add("cdleveningdojistar_" + penetration
+				double penetration = extractValueD(2, arguments, request);
+				request.getIndicators().add("cdleveningdojistar_" + penetration
 						+ "_(0.3)");
 				System.out.println("Calculating CDLEVENINGDOJISTAR");
 				indCount++;
 				writeExt(calcCDLEVENINGDOJISTAR(penetration));
 			} else {
 				error = "CDLEVENINGDOJISTAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdleveningstar")) {
 			if (arguments.length == 3) {
 				//double penetration = Double.parseDouble(arguments[2]);
-				double penetration = extractValueD(2, arguments);
-				WriteCsv.indicators.add("cdleveningstar_" + penetration
+				double penetration = extractValueD(2, arguments, request);
+				request.getIndicators().add("cdleveningstar_" + penetration
 						+ "_(0.3)");
 				System.out.println("Calculating CDLEVENINGSTAR");
 				indCount++;
 				writeExt(calcCDLEVENINGSTAR(penetration));
 			} else {
 				error = "CDLEVENINGSTAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlgapsidesidewhite")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlgapsidesidewhite");
+				request.getIndicators().add("cdlgapsidesidewhite");
 				System.out.println("Calculating CDLGAPSIDESIDEWHITE");
 				indCount++;
 				writeExt(calcCDLGAPSIDESIDEWHITE());
 			} else {
 				error = "CDLGAPSIDESIDEWHITE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlgravestonedoji")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlgravestonedoji");
+				request.getIndicators().add("cdlgravestonedoji");
 				System.out.println("Calculating CDLGRAVESTONEDOJI");
 				indCount++;
 				writeExt(calcCDLGRAVESTONEDOJI());
 			} else {
 				error = "CDLGRAVESTONEDOJI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlhammer")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlhammer");
+				request.getIndicators().add("cdlhammer");
 				System.out.println("Calculating CDLHAMMER");
 				indCount++;
 				writeExt(calcCDLHAMMER());
 			} else {
 				error = "CDLHAMMER parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlhangingman")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlhangingman");
+				request.getIndicators().add("cdlhangingman");
 				System.out.println("Calculating CDLHANGINGMAN");
 				indCount++;
 				writeExt(calcCDLHANGINGMAN());
 			} else {
 				error = "CDLHANGINGMAN parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlharami")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlharami");
+				request.getIndicators().add("cdlharami");
 				System.out.println("Calculating CDLHARAMI");
 				indCount++;
 				writeExt(calcCDLHARAMI());
 			} else {
 				error = "CDLHARAMI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlharamicross")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlharamicross");
+				request.getIndicators().add("cdlharamicross");
 				System.out.println("Calculating CDLHARAMICROSS");
 				indCount++;
 				writeExt(calcCDLHARAMICROSS());
 			} else {
 				error = "CDLHARAMICROSS parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlhighwave")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlhighwave");
+				request.getIndicators().add("cdlhighwave");
 				System.out.println("Calculating CDLHIGHWAVE");
 				indCount++;
 				writeExt(calcCDLHIGHWAVE());
 			} else {
 				error = "CDLHIGHWAVE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlhikkake")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlhikkake");
+				request.getIndicators().add("cdlhikkake");
 				System.out.println("Calculating CDLHIKKAKE");
 				indCount++;
 				writeExt(calcCDLHIKKAKE());
 			} else {
 				error = "CDLHIKKAKE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlhikkakemod")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlhikkakemod");
+				request.getIndicators().add("cdlhikkakemod");
 				System.out.println("Calculating CDLHIKKAKEMOD");
 				indCount++;
 				writeExt(calcCDLHIKKAKEMOD());
 			} else {
 				error = "CDLHIKKAKEMOD parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlhomingpigeon")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlhomingpigeon");
+				request.getIndicators().add("cdlhomingpigeon");
 				System.out.println("Calculating CDLHOMINGPIGEON");
 				indCount++;
 				writeExt(calcCDLHOMINGPIGEON());
 			} else {
 				error = "CDLHOMINGPIGEON parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlidentical3crows")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlidentical3crows");
+				request.getIndicators().add("cdlidentical3crows");
 				System.out.println("Calculating CDLIDENTICAL3CROWS");
 				indCount++;
 				writeExt(calcCDLIDENTICAL3CROWS());
 			} else {
 				error = "CDLIDENTICAL3CROWS parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlinneck")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlinneck");
+				request.getIndicators().add("cdlinneck");
 				System.out.println("Calculating CDLINNECK");
 				indCount++;
 				writeExt(calcCDLINNECK());
 			} else {
 				error = "CDLEVENINGDOJISTAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlinvertedhammer")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlinvertedhammer");
+				request.getIndicators().add("cdlinvertedhammer");
 				System.out.println("Calculating CDLINVERTEDHAMMER");
 				indCount++;
 				writeExt(calcCDLINVERTEDHAMMER());
 			} else {
 				error = "CDLINVERTEDHAMMER parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlkicking")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlkicking");
+				request.getIndicators().add("cdlkicking");
 				System.out.println("Calculating CDLKICKING");
 				indCount++;
 				writeExt(calcCDLKICKING());
 			} else {
 				error = "CDLKICKING parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlkickingbylength")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlkickingbylength");
+				request.getIndicators().add("cdlkickingbylength");
 				System.out.println("Calculating CDLKICKINGBYLENGTH");
 				indCount++;
 				writeExt(calcCDLKICKINGBYLENGTH());
 			} else {
 				error = "CDLKICKINGBYLENGTH parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlladderbottom")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlladderbottom");
+				request.getIndicators().add("cdlladderbottom");
 				System.out.println("Calculating CDLLADDERBOTTOM");
 				indCount++;
 				writeExt(calcCDLLADDERBOTTOM());
 			} else {
 				error = "CDLLADDERBOTTOM parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdllongleggeddoji")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdllongleggeddoji");
+				request.getIndicators().add("cdllongleggeddoji");
 				System.out.println("Calculating CDLLONGLEGGEDDOJI");
 				indCount++;
 				writeExt(calcCDLLONGLEGGEDDOJI());
 			} else {
 				error = "CDLLONGLEGGEDDOJI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdllongline")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdllongline");
+				request.getIndicators().add("cdllongline");
 				System.out.println("Calculating CDLLONGLINE");
 				indCount++;
 				writeExt(calcCDLLONGLINE());
 			} else {
 				error = "CDLLONGLINE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlmarubozu")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlmarubozu");
+				request.getIndicators().add("cdlmarubozu");
 				System.out.println("Calculating CDLMARUBOZU");
 				indCount++;
 				writeExt(calcCDLMARUBOZU());
 			} else {
 				error = "CDLMARUBOZU parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlmatchinglow")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlmatchinglow");
+				request.getIndicators().add("cdlmatchinglow");
 				System.out.println("Calculating CDLMATCHINGLOW");
 				indCount++;
 				writeExt(calcCDLMATCHINGLOW());
 			} else {
 				error = "CDLMATCHINGLOW parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlmathold")) {
 			if (arguments.length == 3) {
 				//double penetration = Double.parseDouble(arguments[2]);
-				double penetration = extractValueD(2, arguments);
-				WriteCsv.indicators.add("cdlmathold_" + penetration + "_(0.5)");
+				double penetration = extractValueD(2, arguments, request);
+				request.getIndicators().add("cdlmathold_" + penetration + "_(0.5)");
 				System.out.println("Calculating CDLMATHOLD");
 				indCount++;
 				writeExt(calcCDLMATHOLD(penetration));
 			} else {
 				error = "CDLMATHOLD parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlmorningdojistar")) {
 			if (arguments.length == 3) {
 				//double penetration = Double.parseDouble(arguments[2]);
-				double penetration = extractValueD(2, arguments);
-				WriteCsv.indicators.add("cdlmorningdojistar_" + penetration
+				double penetration = extractValueD(2, arguments, request);
+				request.getIndicators().add("cdlmorningdojistar_" + penetration
 						+ "_(0.3)");
 				System.out.println("Calculating CDLMORNINGDOJISTAR");
 				indCount++;
 				writeExt(calcCDLMORNINGDOJISTAR(penetration));
 			} else {
 				error = "CDLMORNINGDOJISTAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlmorningstar")) {
 			if (arguments.length == 3) {
 				//double penetration = Double.parseDouble(arguments[2]);
-				double penetration = extractValueD(2, arguments);
-				WriteCsv.indicators.add("cdlmorningstar_" + penetration
+				double penetration = extractValueD(2, arguments, request);
+				request.getIndicators().add("cdlmorningstar_" + penetration
 						+ "_(0.3)");
 				System.out.println("Calculating CDLMORNINGSTAR");
 				indCount++;
 				writeExt(calcCDLMORNINGSTAR(penetration));
 			} else {
 				error = "CDLMORNINGSTAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlonneck")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlonneck");
+				request.getIndicators().add("cdlonneck");
 				System.out.println("Calculating CDLONNECK");
 				indCount++;
 				writeExt(calcCDLONNECK());
 			} else {
 				error = "CDLONNECK parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlpiercing")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlpiercing");
+				request.getIndicators().add("cdlpiercing");
 				System.out.println("Calculating CDLPIERCING");
 				indCount++;
 				writeExt(calcCDLPIERCING());
 			} else {
 				error = "CDLPIERCING parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlrickshawman")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlrickshawman");
+				request.getIndicators().add("cdlrickshawman");
 				System.out.println("Calculating CDLRICKSHAWMAN");
 				indCount++;
 				writeExt(calcCDLRICKSHAWMAN());
 			} else {
 				error = "CDLRICKSHAWMAN parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlrisefall3methods")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlrisefall3methods");
+				request.getIndicators().add("cdlrisefall3methods");
 				System.out.println("Calculating CDLRISEFALL3METHODS");
 				indCount++;
 				writeExt(calcCDLRISEFALL3METHODS());
 			} else {
 				error = "CDLRISEFALL3METHODS parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlseparatinglines")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlseparatinglines");
+				request.getIndicators().add("cdlseparatinglines");
 				System.out.println("Calculating CDLSEPARATINGLINES");
 				indCount++;
 				writeExt(calcCDLSEPARATINGLINES());
 			} else {
 				error = "CDLSEPARATINGLINES parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlshootingstar")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlshootingstar");
+				request.getIndicators().add("cdlshootingstar");
 				System.out.println("Calculating CDLSHOOTINGSTAR");
 				indCount++;
 				writeExt(calcCDLSHOOTINGSTAR());
 			} else {
 				error = "CDLSHOOTINGSTAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlshortline")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlshortline");
+				request.getIndicators().add("cdlshortline");
 				System.out.println("Calculating CDLSHORTLINE");
 				indCount++;
 				writeExt(calcCDLSHORTLINE());
 			} else {
 				error = "CDLSHORTLINE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlspinningtop")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlspinningtop");
+				request.getIndicators().add("cdlspinningtop");
 				System.out.println("Calculating CDLSPINNINGTOP");
 				indCount++;
 				writeExt(calcCDLSPINNINGTOP());
 			} else {
 				error = "CDLSPINNINGTOP parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlstalledpattern")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlstalledpattern");
+				request.getIndicators().add("cdlstalledpattern");
 				System.out.println("Calculating CDLSTALLEDPATTERN");
 				indCount++;
 				writeExt(calcCDLSTALLEDPATTERN());
 			} else {
 				error = "CDLSTALLEDPATTERN parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlsticksandwich")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlsticksandwich");
+				request.getIndicators().add("cdlsticksandwich");
 				System.out.println("Calculating CDLSTICKSANDWICH");
 				indCount++;
 				writeExt(calcCDLSTICKSANDWICH());
 			} else {
 				error = "CDLSTICKSANDWICH parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdltakuri")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdltakuri");
+				request.getIndicators().add("cdltakuri");
 				System.out.println("Calculating CDLTAKURI");
 				indCount++;
 				writeExt(calcCDLTAKURI());
 			} else {
 				error = "CDLTAKURI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdltasukigap")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdltakusigap");
+				request.getIndicators().add("cdltakusigap");
 				System.out.println("Calculating CDLTAKUSIGAP");
 				indCount++;
 				writeExt(calcCDLTASUKIGAP());
 			} else {
 				error = "CDLSHOOTINGSTAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlthrusting")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlthrusting");
+				request.getIndicators().add("cdlthrusting");
 				System.out.println("Calculating CDLTHRUSTING");
 				indCount++;
 				writeExt(calcCDLTHRUSTING());
 			} else {
 				error = "CDLTHRUSTING parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdltristar")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdltristar");
+				request.getIndicators().add("cdltristar");
 				System.out.println("Calculating CDLTRISTAR");
 				indCount++;
 				writeExt(calcCDLTRISTAR());
 			} else {
 				error = "CDLTRISTAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlunique3river")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlunique3river");
+				request.getIndicators().add("cdlunique3river");
 				System.out.println("Calculating CDLUNIQUE3RIVER");
 				indCount++;
 				writeExt(calcCDLUNIQUE3RIVER());
 			} else {
 				error = "CDLUNIQUE3RIVER parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlupsidegap2crows")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlupsidegap2crows");
+				request.getIndicators().add("cdlupsidegap2crows");
 				System.out.println("Calculating CDLUPSIDEGAP2CROWS");
 				indCount++;
 				writeExt(calcCDLUPSIDEGAP2CROW());
 			} else {
 				error = "CDLUPSIDEGAP2CROW parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cdlxsidegap3methods")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("cdlxsidegap3methods");
+				request.getIndicators().add("cdlxsidegap3methods");
 				System.out.println("Calculating CDLXSIDEGAP3METHODS");
 				indCount++;
 				writeExt(calcCDLXSIDEGAP3METHODS());
 			} else {
 				error = "CDLXSIDEGAP3METHODS parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("cmo")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("cmo_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("cmo_" + period + "_(14)");
 				System.out.println("Calculating CMO");
 				indCount++;
 				writeExt(calcCMO(period));
 			} else {
 				error = "CMO parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("dema")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("dema_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("dema_" + period + "_(30)");
 				System.out.println("Calculating DEMA");
 				indCount++;
 				writeExt(calcDEMA(period));
 			} else {
 				error = "DEMA parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("dx")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("dx_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("dx_" + period + "_(14)");
 				System.out.println("Calculating DX");
 				indCount++;
 				writeExt(calcDX(period));
 			} else {
 				error = "DX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("htdcperiod")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("htdcperiod");
+				request.getIndicators().add("htdcperiod");
 				System.out.println("Calculating HTDCPERIOD");
 				indCount++;
 				writeExt(calcHTDCPERIOD());
 			} else {
 				error = "HTDCPERIOD parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("htdcphase")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("htdcphase");
+				request.getIndicators().add("htdcphase");
 				System.out.println("Calculating HTDCPHASE");
 				indCount++;
 				writeExt(calcHTDCPHASE());
 			} else {
 				error = "HTDCPHASE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("htphasor")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("htphasor_inphase");
-				WriteCsv.indicators.add("htphasor_quadrature");
+				request.getIndicators().add("htphasor_inphase");
+				request.getIndicators().add("htphasor_quadrature");
 				System.out.println("Calculating HTPHASOR");
 				indCount = indCount + 2;
 				calcHTPHASOR();
@@ -1259,13 +1258,13 @@ public class TALibCalls {
 				writeExt(htphasor_outquad);
 			} else {
 				error = "HTPHASOR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("htsine")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("htsine_sine");
-				WriteCsv.indicators.add("htsine_leadsine");
+				request.getIndicators().add("htsine_sine");
+				request.getIndicators().add("htsine_leadsine");
 				System.out.println("Calculating HTSINE");
 				indCount = indCount + 2;
 				calcHTSINE();
@@ -1273,95 +1272,95 @@ public class TALibCalls {
 				writeExt(htleadsine);
 			} else {
 				error = "HTSINE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("httrendline")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("httrendline");
+				request.getIndicators().add("httrendline");
 				System.out.println("Calculating HTTRENDLINE");
 				indCount++;
 				writeExt(calcHTTRENDLINE());
 			} else {
 				error = "HTTRENDLINE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("httrendmode")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("httrendmode");
+				request.getIndicators().add("httrendmode");
 				System.out.println("Calculating HTTRENDMODE");
 				indCount++;
 				writeExt(calcHTTRENDMODE());
 			} else {
 				error = "HTTRENDMODE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("kama")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("kama_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("kama_" + period + "_(30)");
 				System.out.println("Calculating KAMA");
 				indCount++;
 				writeExt(calcKAMA(period));
 			} else {
 				error = "KAMA parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("linearreg")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("linearreg_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("linearreg_" + period + "_(14)");
 				System.out.println("Calculating LINEARREG");
 				indCount++;
 				writeExt(calcLINEARREG(period));
 			} else {
 				error = "LINEARREG parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("linearregangle")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("linearreg_angle_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("linearreg_angle_" + period + "_(14)");
 				System.out.println("Calculating LINEARREG_ANGLE");
 				indCount++;
 				writeExt(calcLINEARREG_ANGLE(period));
 			} else {
 				error = "LINEARREG_ANGLE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("linearregintercept")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("linearreg_intercept_" + period
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("linearreg_intercept_" + period
 						+ "_(14)");
 				System.out.println("Calculating LINEARREG_INTERCEPT");
 				indCount++;
 				writeExt(calcLINEARREG_INTERCEPT(period));
 			} else {
 				error = "LINEARREG_INTERCEPT parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("linearregslope")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("linearreg_slope_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("linearreg_slope_" + period + "_(14)");
 				System.out.println("Calculating LINEARREG_SLOPE");
 				indCount++;
 				writeExt(calcLINEARREG_SLOPE(period));
 			} else {
 				error = "LINEARREG_SLOPE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("macdext")) {
@@ -1369,9 +1368,9 @@ public class TALibCalls {
 //				int fast = Integer.parseInt(arguments[2]);
 //				int slow = Integer.parseInt(arguments[3]);
 //				int smooth = Integer.parseInt(arguments[4]);
-				int fast = extractValueI(2, arguments);
-				int slow = extractValueI(3, arguments);
-				int smooth = extractValueI(4, arguments);
+				int fast = extractValueI(2, arguments, request);
+				int slow = extractValueI(3, arguments, request);
+				int smooth = extractValueI(4, arguments, request);
 				boolean flag1 = false;
 				boolean flag2 = false;
 				boolean flag3 = false;
@@ -1384,7 +1383,7 @@ public class TALibCalls {
 				if (arguments[7].equals("1")) {
 					flag3 = true;
 				}
-				WriteCsv.indicators.add("macdext_" + fast + "_" + slow + "_"
+				request.getIndicators().add("macdext_" + fast + "_" + slow + "_"
 						+ smooth + "_" + arguments[5] + "_" + arguments[6]
 						+ "_" + arguments[7] + "_(12_26_9_0_0_0)");
 				System.out.println("Calculating MACDEXT");
@@ -1392,31 +1391,31 @@ public class TALibCalls {
 				writeExt(calcMACDEXT(fast, slow, smooth, flag1, flag2, flag3));
 			} else {
 				error = "MACDEXT parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("macdfix")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("macdfix_" + period + "_(9)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("macdfix_" + period + "_(9)");
 				System.out.println("Calculating MACDFIX");
 				indCount++;
 				writeExt(calcMACDFIX(period));
 			} else {
 				error = "MACDFIX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("mama")) {
 			if (arguments.length == 4) {
 //				double fast = Double.parseDouble(arguments[2]);
 //				double slow = Double.parseDouble(arguments[3]);
-				double fast = extractValueD(2, arguments);
-				double slow = extractValueD(3, arguments);
-				WriteCsv.indicators.add("mama_" + fast + "_" + slow
+				double fast = extractValueD(2, arguments, request);
+				double slow = extractValueD(3, arguments, request);
+				request.getIndicators().add("mama_" + fast + "_" + slow
 						+ "_(0.5_0.05)");
-				WriteCsv.indicators.add("mama_fama");
+				request.getIndicators().add("mama_fama");
 				System.out.println("Calculating MAMA");
 				indCount = indCount + 2;
 				calcMAMA(fast, slow);
@@ -1424,117 +1423,117 @@ public class TALibCalls {
 				writeExt(fama);
 			} else {
 				error = "MAMA parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("max")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("max_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("max_" + period + "_(30)");
 				System.out.println("Calculating MAX");
 				indCount++;
 				writeExt(calcMAX(period));
 			} else {
 				error = "MAX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("maxindex")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("maxindex_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("maxindex_" + period + "_(30)");
 				System.out.println("Calculating MAXINDEX");
 				indCount++;
 				writeExt(calcMAXINDEX(period));
 			} else {
 				error = "MAXINDEX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("medprice")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("medprice");
+				request.getIndicators().add("medprice");
 				System.out.println("Calculating MEDPRICE");
 				indCount++;
 				writeExt(calcMEDPRICE());
 			} else {
 				error = "MEDPRICE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("mfi")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("mfi_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("mfi_" + period + "_(14)");
 				System.out.println("Calculating MFI");
 				indCount++;
 				writeExt(calcMFI(period));
 			} else {
 				error = "MFI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("midpoint")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("midpoint_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("midpoint_" + period + "_(14)");
 				System.out.println("Calculating MIDPOINT");
 				indCount++;
 				writeExt(calcMIDPOINT(period));
 			} else {
 				error = "MIDPOINT parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("midprice")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("midprice_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("midprice_" + period + "_(14)");
 				System.out.println("Calculating MIDPRICE");
 				indCount++;
 				writeExt(calcMIDPRICE(period));
 			} else {
 				error = "MIDPRICE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("min")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("min_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("min_" + period + "_(30)");
 				System.out.println("Calculating MIN");
 				indCount++;
 				writeExt(calcMIN(period));
 			} else {
 				error = "MIN parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("minindex")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("minindex_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("minindex_" + period + "_(30)");
 				System.out.println("Calculating MININDEX");
 				indCount++;
 				writeExt(calcMININDEX(period));
 			} else {
 				error = "MININDEX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("minmax")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("minmax_min_" + period + "_(30)");
-				WriteCsv.indicators.add("minmax_max");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("minmax_min_" + period + "_(30)");
+				request.getIndicators().add("minmax_max");
 				System.out.println("Calculating MINMAX");
 				indCount = indCount + 2;
 				calcMINMAX(period);
@@ -1542,15 +1541,15 @@ public class TALibCalls {
 				writeExt(mmmax);
 			} else {
 				error = "MINMAX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("minmaxindex")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("minmaxindex_min_" + period + "_(30)");
-				WriteCsv.indicators.add("minmaxindex_max_");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("minmaxindex_min_" + period + "_(30)");
+				request.getIndicators().add("minmaxindex_max_");
 				System.out.println("Calculating MINMAXINDEX");
 				indCount = indCount + 2;
 				calcMINMAXINDEX(period);
@@ -1558,180 +1557,180 @@ public class TALibCalls {
 				writeExt(mmmaxindex);
 			} else {
 				error = "MINMAXINDEX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("minusdi")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("minusdi_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("minusdi_" + period + "_(14)");
 				System.out.println("Calculating MINUSDI");
 				indCount++;
 				writeExt(calcMINUSDI(period));
 			} else {
 				error = "MINUSDI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("minusdm")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("minusdm_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("minusdm_" + period + "_(14)");
 				System.out.println("Calculating MINUSDM");
 				indCount++;
 				writeExt(calcMINUSDM(period));
 			} else {
 				error = "MINUSDM parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("mom")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("mom_" + period + "_(10)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("mom_" + period + "_(10)");
 				System.out.println("Calculating MOM");
 				indCount++;
 				writeExt(calcMOM(period));
 			} else {
 				error = "MOM parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("natr")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("natr_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("natr_" + period + "_(14)");
 				System.out.println("Calculating NATR");
 				indCount++;
 				writeExt(calcNATR(period));
 			} else {
 				error = "NATR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("obv")) {
 			if (arguments.length == 2) {
-				WriteCsv.indicators.add("obv");
+				request.getIndicators().add("obv");
 				System.out.println("Calculating OBV");
 				indCount++;
 				writeExt(calcOBV());
 			} else {
 				error = "OBV parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("plusdi")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("plusdi_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("plusdi_" + period + "_(14)");
 				System.out.println("Calculating PLUSDI");
 				indCount++;
 				writeExt(calcPLUSDI(period));
 			} else {
 				error = "PLUSDI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("plusdm")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("plusdm_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("plusdm_" + period + "_(14)");
 				System.out.println("Calculating PLUSDM");
 				indCount++;
 				writeExt(calcPLUSDM(period));
 			} else {
 				error = "PLUSDM parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("ppo")) {
 			if (arguments.length == 4) {
 //				int fast = Integer.parseInt(arguments[2]);
 //				int slow = Integer.parseInt(arguments[3]);
-				int fast = extractValueI(2, arguments);
-				int slow = extractValueI(3, arguments);
-				WriteCsv.indicators
+				int fast = extractValueI(2, arguments, request);
+				int slow = extractValueI(3, arguments, request);
+				request.getIndicators()
 						.add("ppo_" + fast + "_" + slow + "_(12_26)");
 				System.out.println("Calculating PPO");
 				indCount++;
 				writeExt(calcPPO(fast, slow));
 			} else {
 				error = "PPO parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("roc")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("roc_" + period + "_(10)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("roc_" + period + "_(10)");
 				System.out.println("Calculating ROC");
 				indCount++;
 				writeExt(calcROC(period));
 			} else {
 				error = "ROC parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("rocp")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("rocp_" + period + "_(10)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("rocp_" + period + "_(10)");
 				System.out.println("Calculating ROCP");
 				indCount++;
 				writeExt(calcROCP(period));
 			} else {
 				error = "ROCP parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("rocr")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("rocr_" + period + "_(10)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("rocr_" + period + "_(10)");
 				System.out.println("Calculating ROCR");
 				indCount++;
 				writeExt(calcROCR(period));
 			} else {
 				error = "ROCR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("rocr100")) {
 			if (arguments.length == 3) {
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("rocr100_" + period + "_(10)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("rocr100_" + period + "_(10)");
 				System.out.println("Calculating ROCR100");
 				indCount++;
 				writeExt(calcROCR100(period));
 			} else {
 				error = "ROCR100 parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("sar")) {
 			if (arguments.length == 4) {
 //				double acceleration = Double.parseDouble(arguments[2]);
 //				double maximum = Double.parseDouble(arguments[3]);
-				double acceleration = extractValueD(2, arguments);
-				double maximum = extractValueD(3, arguments);
-				WriteCsv.indicators.add("sar_" + acceleration + "_" + maximum
+				double acceleration = extractValueD(2, arguments, request);
+				double maximum = extractValueD(3, arguments, request);
+				request.getIndicators().add("sar_" + acceleration + "_" + maximum
 						+ "_(0.02_0.2");
 				System.out.println("Calculating SAR");
 				indCount++;
 				writeExt(calcSAR(acceleration, maximum));
 			} else {
 				error = "ROCR100 parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("sarext")) {
@@ -1744,15 +1743,15 @@ public class TALibCalls {
 //				double accelerationinitshort = Double.parseDouble(arguments[7]);
 //				double accelerationshort = Double.parseDouble(arguments[8]);
 //				double accelerationmaxshort = Double.parseDouble(arguments[9]);
-				int startvalue = extractValueI(2, arguments);
-				int offsetonreverse = extractValueI(3, arguments);
-				double accelerationinitlong = extractValueD(4, arguments);
-				double accelerationlong = extractValueD(5, arguments);
-				double accelerationmaxlong = extractValueD(6, arguments);
-				double accelerationinitshort = extractValueD(7, arguments);
-				double accelerationshort = extractValueD(8, arguments);
-				double accelerationmaxshort = extractValueD(9, arguments);
-				WriteCsv.indicators.add("sarext_" + startvalue + "_"
+				int startvalue = extractValueI(2, arguments, request);
+				int offsetonreverse = extractValueI(3, arguments, request);
+				double accelerationinitlong = extractValueD(4, arguments, request);
+				double accelerationlong = extractValueD(5, arguments, request);
+				double accelerationmaxlong = extractValueD(6, arguments, request);
+				double accelerationinitshort = extractValueD(7, arguments, request);
+				double accelerationshort = extractValueD(8, arguments, request);
+				double accelerationmaxshort = extractValueD(9, arguments, request);
+				request.getIndicators().add("sarext_" + startvalue + "_"
 						+ offsetonreverse + "_" + accelerationinitlong + "_"
 						+ accelerationlong + "_" + accelerationmaxlong + "_"
 						+ accelerationinitshort + "_" + accelerationshort + "_"
@@ -1763,22 +1762,22 @@ public class TALibCalls {
 				writeExt(calcSAREXT(startvalue, offsetonreverse, accelerationinitlong, accelerationlong, accelerationmaxlong, accelerationinitshort, accelerationshort, accelerationmaxshort));
 			} else {
 				error = "SAREXT parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("stddev")){
 			if (arguments.length == 4){
 //				int period = Integer.parseInt(arguments[2]);
 //				int nbdev = Integer.parseInt(arguments[3]);
-				int period = extractValueI(2, arguments);
-				int nbdev = extractValueI(3, arguments);
-				WriteCsv.indicators.add("stddev_" + period + "_" + nbdev + "_(5_1)");
+				int period = extractValueI(2, arguments, request);
+				int nbdev = extractValueI(3, arguments, request);
+				request.getIndicators().add("stddev_" + period + "_" + nbdev + "_(5_1)");
 				System.out.println("Calculating STDDEV");
 				indCount++;
 				writeExt(calcSTDDEV(period, nbdev));
 			} else {
 				error = "STDDEV parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("stoch")){
@@ -1786,11 +1785,11 @@ public class TALibCalls {
 //				int fastk = Integer.parseInt(arguments[2]);
 //				int slowk = Integer.parseInt(arguments[3]);
 //				int slowd = Integer.parseInt(arguments[4]);
-				int fastk = extractValueI(2, arguments);
-				int slowk = extractValueI(3, arguments);
-				int slowd = extractValueI(4, arguments);
-				WriteCsv.indicators.add("stoch_slowk_" + fastk + "_" + slowk + "_" + slowd + "_(5_3_3)");
-				WriteCsv.indicators.add("stoch_slowd");
+				int fastk = extractValueI(2, arguments, request);
+				int slowk = extractValueI(3, arguments, request);
+				int slowd = extractValueI(4, arguments, request);
+				request.getIndicators().add("stoch_slowk_" + fastk + "_" + slowk + "_" + slowd + "_(5_3_3)");
+				request.getIndicators().add("stoch_slowd");
 				System.out.println("Calculating STOCH");
 				indCount = indCount + 2;
 				calcSTOCH(fastk, slowk, slowd);
@@ -1798,17 +1797,17 @@ public class TALibCalls {
 				writeExt(stochslowd);
 			} else {
 				error = "STOCH parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("stochf")){
 			if (arguments.length == 4){
 //				int fastk = Integer.parseInt(arguments[2]);
 //				int fastd = Integer.parseInt(arguments[3]);
-				int fastk = extractValueI(2, arguments);
-				int fastd = extractValueI(3, arguments);
-				WriteCsv.indicators.add("stochf_fastk_" + fastk + "_" + fastd + "_(5_3)");
-				WriteCsv.indicators.add("stochf_fastd");
+				int fastk = extractValueI(2, arguments, request);
+				int fastd = extractValueI(3, arguments, request);
+				request.getIndicators().add("stochf_fastk_" + fastk + "_" + fastd + "_(5_3)");
+				request.getIndicators().add("stochf_fastd");
 				System.out.println("Calculating STOCHF");
 				indCount = indCount + 2;
 				calcSTOCHF(fastk, fastd);
@@ -1816,7 +1815,7 @@ public class TALibCalls {
 				writeExt(stochfastd);
 			} else {
 				error = "STOCHF parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("stochrsi")){
@@ -1824,11 +1823,11 @@ public class TALibCalls {
 //				int period = Integer.parseInt(arguments[2]);
 //				int fastk = Integer.parseInt(arguments[3]);
 //				int fastd = Integer.parseInt(arguments[4]);
-				int period = extractValueI(2, arguments);
-				int fastk = extractValueI(3, arguments);
-				int fastd = extractValueI(4, arguments);
-				WriteCsv.indicators.add("stochrsi_fastk_" + period + "_" + fastk + "_" + fastd + "_(14_5_3)");
-				WriteCsv.indicators.add("stochrsi_fastd");
+				int period = extractValueI(2, arguments, request);
+				int fastk = extractValueI(3, arguments, request);
+				int fastd = extractValueI(4, arguments, request);
+				request.getIndicators().add("stochrsi_fastk_" + period + "_" + fastk + "_" + fastd + "_(14_5_3)");
+				request.getIndicators().add("stochrsi_fastd");
 				System.out.println("Calculating STOCHRSI");
 				indCount = indCount + 2;
 				calcSTOCHRSI(period, fastk, fastd);
@@ -1836,96 +1835,96 @@ public class TALibCalls {
 				writeExt(strsifastd);
 			} else {
 				error = "STOCHRSI parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("t3")){
 			if (arguments.length == 4){
 //				int period = Integer.parseInt(arguments[2]);
 //				double vfactor = Double.parseDouble(arguments[3]);
-				int period = extractValueI(2, arguments);
-				double vfactor = extractValueD(3, arguments);
-				WriteCsv.indicators.add("t3_" + period + "_" + vfactor + "_(5_0.7)");
+				int period = extractValueI(2, arguments, request);
+				double vfactor = extractValueD(3, arguments, request);
+				request.getIndicators().add("t3_" + period + "_" + vfactor + "_(5_0.7)");
 				System.out.println("Calculating T3");
 				indCount++;
 				writeExt(calcT3(period, vfactor));
 			} else {
 				error = "T3 parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("tema")){
 			if (arguments.length == 3){
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("tema_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("tema_" + period + "_(30)");
 				System.out.println("Calculating TEMA");
 				indCount++;
 				writeExt(calcTEMA(period));
 			} else {
 				error = "TEMA parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("trange")){
 			if (arguments.length == 2){
-				WriteCsv.indicators.add("trange");
+				request.getIndicators().add("trange");
 				System.out.println("Calculating TRANGE");
 				indCount++;
 				writeExt(calcTRANGE());
 			} else {
 				error = "TRANGE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("trima")){
 			if (arguments.length == 3){
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("trima_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("trima_" + period + "_(30)");
 				System.out.println("Calculating TRIMA");
 				indCount++;
 				writeExt(calcTRIMA(period));
 			} else {
 				error = "TRIMA parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("trix")){
 			if (arguments.length == 3){
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("trix_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("trix_" + period + "_(30)");
 				System.out.println("Calculating TRIX");
 				indCount++;
 				writeExt(calcTRIX(period));
 			} else {
 				error = "TRIX parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("tsf")){
 			if (arguments.length == 3){
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("tsf_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("tsf_" + period + "_(14)");
 				System.out.println("Calculating TSF");
 				indCount++;
 				writeExt(calcTSF(period));
 			} else {
 				error = "TSF parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("typprice")){
 			if (arguments.length == 2){
-				WriteCsv.indicators.add("typprice");
+				request.getIndicators().add("typprice");
 				System.out.println("Calculating TYPPRICE");
 				indCount++;
 				writeExt(calcTYPPRICE());
 			} else {
 				error = "TYPPRICE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("ultosc")){
@@ -1933,73 +1932,73 @@ public class TALibCalls {
 //				int period1 = Integer.parseInt(arguments[2]);
 //				int period2 = Integer.parseInt(arguments[3]);
 //				int period3 = Integer.parseInt(arguments[4]);
-				int period1 = extractValueI(2, arguments);
-				int period2 = extractValueI(3, arguments);
-				int period3 = extractValueI(4, arguments);
-				WriteCsv.indicators.add("ultosc_" + period1 + "_" + period2 + "_" + period3 + "_(7_14_28)");
+				int period1 = extractValueI(2, arguments, request);
+				int period2 = extractValueI(3, arguments, request);
+				int period3 = extractValueI(4, arguments, request);
+				request.getIndicators().add("ultosc_" + period1 + "_" + period2 + "_" + period3 + "_(7_14_28)");
 				System.out.println("Calculating ULTOSC");
 				indCount++;
 				writeExt(calcULTOSC(period1, period2, period3));
 			} else {
 				error = "ULTOSC parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("var")){
 			if (arguments.length == 4){
 //				int period = Integer.parseInt(arguments[2]);
 //				int nbdev = Integer.parseInt(arguments[3]);
-				int period = extractValueI(2, arguments);
-				int nbdev = extractValueI(3, arguments);
-				WriteCsv.indicators.add("var_" + period + "_" + nbdev + "_(5_1)");
+				int period = extractValueI(2, arguments, request);
+				int nbdev = extractValueI(3, arguments, request);
+				request.getIndicators().add("var_" + period + "_" + nbdev + "_(5_1)");
 				System.out.println("Calculating VAR");
 				indCount++;
 				writeExt(calcVAR(period, nbdev));
 			} else {
 				error = "VAR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("wclprice")){
 			if (arguments.length == 2){
-				WriteCsv.indicators.add("wclprice");
+				request.getIndicators().add("wclprice");
 				System.out.println("Calculating WCLPRICE");
 				indCount++;
 				writeExt(calcWCLPRICE());
 			} else {
 				error = "WCLPRICE parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("willr")){
 			if (arguments.length == 3){
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("willr_" + period + "_(14)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("willr_" + period + "_(14)");
 				System.out.println("Calculating WILLR");
 				indCount++;
 				writeExt(calcWILLR(period));
 			} else {
 				error = "WILLR parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else if (arguments[1].equalsIgnoreCase("wma")){
 			if (arguments.length == 3){
 				//int period = Integer.parseInt(arguments[2]);
-				int period = extractValueI(2, arguments);
-				WriteCsv.indicators.add("wma_" + period + "_(30)");
+				int period = extractValueI(2, arguments, request);
+				request.getIndicators().add("wma_" + period + "_(30)");
 				System.out.println("Calculating WMA");
 				indCount++;
 				writeExt(calcWMA(period));
 			} else {
 				error = "WMA parameter mismatch";
-				StockAnalyzer.setError(error);
+				request.addError(error);
 				System.out.println(error);
 			}
 		} else {
 			error = "unknown command " + arguments[1];
-			StockAnalyzer.setError(error);
+			request.addError(error);
 			System.out.println(error);
 		}
 	}
@@ -3163,11 +3162,11 @@ public class TALibCalls {
 	}
 
 	public static void calcRVI(int period) {
-		for (int i = 0; i < ParseCsv.stockList.size(); i++) {
-			RVI.Open.add(ParseCsv.stockList.get(i).getOpen());
-			RVI.Close.add(ParseCsv.stockList.get(i).getClose());
-			RVI.High.add(ParseCsv.stockList.get(i).getHigh());
-			RVI.Low.add(ParseCsv.stockList.get(i).getLow());
+		for (int i = 0; i < CsvImportService.stockList.size(); i++) {
+			RVI.Open.add(CsvImportService.stockList.get(i).getOpen());
+			RVI.Close.add(CsvImportService.stockList.get(i).getClose());
+			RVI.High.add(CsvImportService.stockList.get(i).getHigh());
+			RVI.Low.add(CsvImportService.stockList.get(i).getLow());
 		}
 		// for (int j = 0; j < size_diff; j++){
 		// RVI.setRvi_l(0.);
@@ -3191,6 +3190,6 @@ public class TALibCalls {
 	}
 
 	public static void setIndCount(int indCount) {
-		TALibCalls.indCount = indCount;
+		TALibCalculationService.indCount = indCount;
 	}
 }
