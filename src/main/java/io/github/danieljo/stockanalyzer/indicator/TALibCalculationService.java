@@ -11,6 +11,7 @@ import com.tictactec.ta.lib.MAType;
 import com.tictactec.ta.lib.MInteger;
 import com.tictactec.ta.lib.RetCode;
 
+import io.github.danieljo.stockanalyzer.model.Stock;
 import io.github.danieljo.stockanalyzer.service.CsvImportService;
 
 /**
@@ -203,6 +204,38 @@ public class TALibCalculationService {
 		length.value = -1;
 
 		c = new Core();
+	}
+
+	/**
+	 * Builds the open/high/low/close/volume input arrays from the loaded bars and constructs a
+	 * (deliberately discarded) instance to populate this class's static input arrays - was
+	 * StockAnalyzer.copyArray()/StockAnalyzerApplication.buildIndicatorInput(), pulled in here so
+	 * both the CLI and the REST job pipeline can call it without duplicating the loop.
+	 * <p>
+	 * Also resets {@code resultSet}/{@code indCount}, which otherwise just keep accumulating
+	 * across calls - harmless for the CLI (one run per process) but a real bug once more than one
+	 * analysis runs in the same JVM (the REST API): without this, a second analysis's output
+	 * columns would be appended after the first one's instead of starting fresh. This does *not*
+	 * make concurrent calls safe, only sequential ones - see AnalysisJobService's single-threaded
+	 * executor for why concurrent access is still avoided entirely for now.
+	 */
+	public static void initialize(List<Stock> bars) {
+		resultSet.clear();
+		indCount = 0;
+
+		double[] open = new double[bars.size()];
+		double[] high = new double[bars.size()];
+		double[] low = new double[bars.size()];
+		double[] close = new double[bars.size()];
+		double[] volume = new double[bars.size()];
+		for (int i = 0; i < bars.size(); i++) {
+			open[i] = bars.get(i).getOpen();
+			high[i] = bars.get(i).getHigh();
+			low[i] = bars.get(i).getLow();
+			close[i] = bars.get(i).getClose();
+			volume[i] = bars.get(i).getVolume();
+		}
+		new TALibCalculationService(open, close, high, low, volume);
 	}
 
 	public static void writeExt(double[] tempRS) {

@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import io.github.danieljo.stockanalyzer.cli.AnalysisRequest;
@@ -23,8 +24,17 @@ import io.github.danieljo.stockanalyzer.service.MarketDataService;
  * <p>
  * Bars now come from a CSV file (no more DB). Resolving {@code csv_<path>} into a stream is the
  * only filesystem-specific part of this - {@link MarketDataService#loadBars} itself just takes
- * an {@link InputStream}, so a future REST endpoint can hand it a {@code MultipartFile}'s stream
- * instead without changing that method.
+ * an {@link InputStream}, so the REST endpoint hands it a {@code MultipartFile}'s stream instead
+ * without needing changes to that method.
+ * <p>
+ * Now that {@code spring-boot-starter-web} is on the classpath (for the REST API), Spring Boot
+ * would otherwise try to start an embedded web server on every run, including plain one-shot CLI
+ * invocations - which don't need a listening port and would fail if one isn't free. {@link #main}
+ * disables the web server whenever any argument looks like one of our CLI tokens (i.e. doesn't
+ * start with {@code --}, which is how Spring's own property-override args are always written) -
+ * so `java -jar stock-analyzer.jar` alone (or with only `--server.port=...`-style args) still
+ * starts the REST server, while `java -jar stock-analyzer.jar name_bmw time_30 ...` runs as a
+ * plain CLI command with no port involved at all.
  */
 @SpringBootApplication
 public class StockAnalyzerApplication implements CommandLineRunner {
@@ -36,15 +46,28 @@ public class StockAnalyzerApplication implements CommandLineRunner {
 	}
 
 	public static void main(String[] args) {
-		SpringApplication.run(StockAnalyzerApplication.class, args);
+		SpringApplication app = new SpringApplication(StockAnalyzerApplication.class);
+		if (isCliInvocation(args)) {
+			app.setWebApplicationType(WebApplicationType.NONE);
+		}
+		app.run(args);
+	}
+
+	private static boolean isCliInvocation(String[] args) {
+		for (String arg : args) {
+			if (!arg.startsWith("--")) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override
 	public void run(String... args) throws Exception {
 		long start = System.currentTimeMillis();
 
-		if (args.length == 0) {
-			System.out.println("CommandLine Argumente fehlen!");
+		if (!isCliInvocation(args)) {
+			// Running as the REST server (see main()) - nothing to do here.
 			return;
 		}
 
@@ -62,7 +85,7 @@ public class StockAnalyzerApplication implements CommandLineRunner {
 		try (InputStream csvInput = new FileInputStream(csvPath)) {
 			bars = marketDataService.loadBars(csvInput, request);
 		}
-		buildIndicatorInput(bars);
+		TALibCalculationService.initialize(bars);
 
 		ArgumentParser.parseOptions(args, request);
 
@@ -72,23 +95,5 @@ public class StockAnalyzerApplication implements CommandLineRunner {
 			System.out.println(i + " " + request.getErrors().get(i));
 		}
 		System.out.println("DecimalFormat Durchlauf Nr." + " :" + (System.currentTimeMillis() - start) + "ms");
-	}
-
-	private void buildIndicatorInput(List<Stock> bars) {
-		double[] open = new double[bars.size()];
-		double[] high = new double[bars.size()];
-		double[] low = new double[bars.size()];
-		double[] close = new double[bars.size()];
-		double[] volume = new double[bars.size()];
-		for (int i = 0; i < bars.size(); i++) {
-			open[i] = bars.get(i).getOpen();
-			high[i] = bars.get(i).getHigh();
-			low[i] = bars.get(i).getLow();
-			close[i] = bars.get(i).getClose();
-			volume[i] = bars.get(i).getVolume();
-		}
-		// Constructor assigns into TALibCalculationService's static input arrays; the instance
-		// itself is unused afterwards, same as the original StockAnalyzer.copyArray()/tlc field.
-		new TALibCalculationService(open, close, high, low, volume);
 	}
 }

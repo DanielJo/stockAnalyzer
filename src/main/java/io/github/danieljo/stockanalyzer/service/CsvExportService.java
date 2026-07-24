@@ -72,40 +72,46 @@ public class CsvExportService {
 		return builder.toString();
 	}
 
-	public static void writeCsv(List<List<Double>> resultSet, AnalysisRequest request) throws IOException {
-		System.out.print("Writing csv");
+	/**
+	 * Builds the full CSV content as a string - source/destination-agnostic, same reasoning as
+	 * {@code CsvImportService.importFromStream}: the CLI writes this to a file
+	 * ({@link #writeCsv}), a REST endpoint can return it directly in a response body instead.
+	 */
+	public static String buildCsv(List<List<Double>> resultSet, AnalysisRequest request) {
 		String delimiter = request.getDelimiter();
+		StringBuilder csv = new StringBuilder();
+		StringBuilder b = new StringBuilder();
+		csv.append(buildHeader(request));
+		for (int i = 0; i < CsvImportService.stockList.size(); i++) {
+			csv.append(CsvImportService.stockList.get(i).getSymbol()).append(delimiter)
+					.append(CsvImportService.stockList.get(i).getIntervall()).append(delimiter)
+					.append(CsvImportService.stockList.get(i).getDateTime()).append(delimiter)
+					.append(appendTo2(b, CsvImportService.stockList.get(i).getOpen())).append(delimiter)
+					.append(appendTo2(b, CsvImportService.stockList.get(i).getHigh())).append(delimiter)
+					.append(appendTo2(b, CsvImportService.stockList.get(i).getLow())).append(delimiter)
+					.append(appendTo2(b, CsvImportService.stockList.get(i).getClose())).append(delimiter)
+					.append(CsvImportService.stockList.get(i).getVolume());
 
+			for (int j = 0; j < TALibCalculationService.getIndCount(); j++) {
+				if (i >= resultSet.get(j).size()) {
+					csv.append(delimiter).append("0.");
+				} else {
+					csv.append(delimiter).append(appendTo2(b, resultSet.get(j).get(i)));
+				}
+			}
+			csv.append("\n");
+		}
+		return csv.toString();
+	}
+
+	public static void writeCsv(List<List<Double>> resultSet, AnalysisRequest request) throws IOException {
+		System.out.println("Writing csv");
+		String csv = buildCsv(resultSet, request);
 		File file = new File(request.getSymbol() + "_" + request.getInterval() + request.getFileNameAdd() + "min.csv");
 		try (BufferedWriter bw = new BufferedWriter(new FileWriter(file, false))) {
-			StringBuilder b = new StringBuilder();
-			bw.write(buildHeader(request));
-			for (int i = 0; i < CsvImportService.stockList.size(); i++) {
-				if (i % 10000 == 0) {
-					System.out.print(".");
-				}
-				StringBuilder builder = new StringBuilder();
-				builder.append(CsvImportService.stockList.get(i).getSymbol()).append(delimiter)
-						.append(CsvImportService.stockList.get(i).getIntervall()).append(delimiter)
-						.append(CsvImportService.stockList.get(i).getDateTime()).append(delimiter)
-						.append(appendTo2(b, CsvImportService.stockList.get(i).getOpen())).append(delimiter)
-						.append(appendTo2(b, CsvImportService.stockList.get(i).getHigh())).append(delimiter)
-						.append(appendTo2(b, CsvImportService.stockList.get(i).getLow())).append(delimiter)
-						.append(appendTo2(b, CsvImportService.stockList.get(i).getClose())).append(delimiter)
-						.append(CsvImportService.stockList.get(i).getVolume());
-
-				for (int j = 0; j < TALibCalculationService.getIndCount(); j++) {
-					if (i >= resultSet.get(j).size()) {
-						builder.append(delimiter).append("0.");
-					} else {
-						builder.append(delimiter).append(appendTo2(b, resultSet.get(j).get(i)));
-					}
-				}
-				builder.append("\n");
-				bw.write(builder.toString());
-			}
+			bw.write(csv);
 		}
-		System.out.println("\nWriting csv successful!");
+		System.out.println("Writing csv successful!");
 	}
 
 	private static String buildHeader(AnalysisRequest request) {
