@@ -1,5 +1,6 @@
 package io.github.danieljo.stockanalyzer.cli;
 
+import io.github.danieljo.stockanalyzer.indicator.IndicatorType;
 import io.github.danieljo.stockanalyzer.indicator.TALibCalculationService;
 
 /**
@@ -16,8 +17,11 @@ import io.github.danieljo.stockanalyzer.indicator.TALibCalculationService;
  *   slashes that splitting would mangle - so it just takes everything after the {@code csv_}
  *   prefix as-is.</li>
  *   <li>{@link #parseOptions(String[], AnalysisRequest)} processes the remaining tokens
- *   (delimiter/pivot/rvi/zz/ta/file), same as the original {@code parseCL}.</li>
+ *   (delimiter/pivot/rvi/zz/ta/file/indicators), same as the original {@code parseCL}.</li>
  * </ol>
+ * {@code indicators_<id>,<id>,...} (e.g. {@code indicators_1,3,5}) is a compact alternative to
+ * {@code ta_<name>_<params>} for the indicators catalogued in {@link IndicatorType} - it runs
+ * each with its default parameters instead of requiring every param to be spelled out.
  */
 public final class ArgumentParser {
 
@@ -135,6 +139,24 @@ public final class ArgumentParser {
 				TALibCalculationService.setIndCount(TALibCalculationService.getIndCount() + 2);
 			} else if (arguments[0].equalsIgnoreCase("ta")) {
 				TALibCalculationService.methodCall(arguments, request);
+			} else if (arguments[0].equalsIgnoreCase("indicators")) {
+				if (arguments.length != 2) {
+					error = "Indicators argument mismatch";
+					System.out.println(error);
+					request.addError(error);
+					continue;
+				}
+				for (String idToken : arguments[1].split(",")) {
+					try {
+						IndicatorType indicator = IndicatorType.fromId(Integer.parseInt(idToken.trim()));
+						System.out.println("Calculating " + indicator.getDisplayName());
+						indicator.calculate(request);
+					} catch (IllegalArgumentException ex) {
+						error = "Unknown indicator id: " + idToken;
+						System.out.println(error);
+						request.addError(error);
+					}
+				}
 			} else if (arguments[0].equalsIgnoreCase("name")) {
 				// already handled by parseNameAndTime
 			} else if (arguments[0].equalsIgnoreCase("time")) {

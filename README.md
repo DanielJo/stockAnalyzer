@@ -14,9 +14,11 @@ StockAnalyzer is a command-line tool that:
 2. **Computes technical-analysis indicators** over that series — via the
    [TA-Lib](https://ta-lib.org/) Java port (`com.tictactec.ta.lib`), plus three
    hand-written indicators (Pivot Points, RVI, ZigZag) that aren't part of TA-Lib.
-   You pick which indicators to compute via CLI arguments; almost the entire TA-Lib
-   function catalogue is wired up (moving averages, oscillators, candlestick pattern
-   recognition, etc.).
+   Almost the entire TA-Lib function catalogue is wired up (moving averages, oscillators,
+   candlestick pattern recognition, etc.) - 137 indicators in total, each with a stable
+   numeric id in [`IndicatorType`](src/main/java/io/github/danieljo/stockanalyzer/indicator/IndicatorType.java)
+   so you can select several at once with default parameters (`indicators_1,3,5`) instead of
+   spelling each one out individually.
 3. **Writes the result to a CSV file** — one row per bar, with the OHLCV columns plus one
    column per requested indicator.
 
@@ -66,12 +68,15 @@ colons or slashes.
 | `time_<interval>_<start>_<end>` | Also restrict to a time-of-day window, e.g. `time_30_08:30_16:30` |
 | `time_<interval>_<start>_<end>_<startdate>_<enddate>` | Also restrict to a date range |
 | `csv_<path>` | **Required.** Path to the input CSV file |
-| `ta_<indicator>_<params...>` | Compute a TA-Lib indicator, e.g. `ta_macd_12_26_9`, `ta_ema_9`, `ta_rsi_14_3` |
+| `ta_<indicator>_<params...>` | Compute a TA-Lib indicator with custom parameters, e.g. `ta_macd_12_26_9`, `ta_ema_9`, `ta_rsi_14_3` |
 | `pivot` | Compute Pivot Points |
 | `rvi_<period>` | Compute RVI (Relative Vigor Index) |
 | `zz_<threshold>` | Compute ZigZag |
+| `indicators_<id>,<id>,...` | Compute one or more indicators by numeric id, with default parameters - e.g. `indicators_1,3,5`. See [`IndicatorType`](src/main/java/io/github/danieljo/stockanalyzer/indicator/IndicatorType.java) for the full catalog (every indicator already wired up, ~137 in total) and its id/default-parameter table. |
 | `delimiter_<char>` | Output CSV delimiter (default `;`) |
 | `file_<suffix>` | Suffix appended to the output filename |
+
+`indicators_<ids>` and `ta_<indicator>_<params>` can both compute the same indicator - `indicators_` is a compact way to get several indicators at once with sensible defaults, `ta_` is for when you need a specific, non-default parameter. Same underlying calculation either way; `IndicatorType` just forwards to the same dispatch the `ta_` argument uses. Designed so a REST endpoint can accept the same comma-separated ids later (e.g. `?indicators=1,3,5`) without needing a different selection mechanism.
 
 ### Input CSV format
 
@@ -86,10 +91,11 @@ no re-aggregation of, say, 1-minute data into 30-minute bars on the CSV path (th
 `AggregateService`, is currently unused; it only made sense against the old DB's "fetch 1-min,
 aggregate locally" fallback).
 
-Example:
+Examples:
 
 ```
 java -jar target/stock-analyzer.jar name_bmw time_30 csv_bmw_30min.csv ta_macd_12_26_9
+java -jar target/stock-analyzer.jar name_bmw time_30 csv_bmw_30min.csv indicators_1,2,3,4
 ```
 
 ## Architecture
