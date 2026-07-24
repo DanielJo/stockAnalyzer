@@ -1,2 +1,13 @@
-rem *
-java -jar StockAnalyzer.jar name_bmw time_30 macd_12_26_9
+rem Maven/Spring Boot build:
+mvn clean package
+
+rem Required environment variables (no defaults are committed - the app fails fast if unset):
+rem   DB_URL       e.g. jdbc:mysql://host:3306/schema
+rem   DB_USERNAME
+rem   DB_PASSWORD
+
+rem Run via the packaged jar:
+java -jar target/stock-analyzer.jar name_bmw time_30 macd_12_26_9
+
+rem or via the Maven plugin during development:
+mvn spring-boot:run -Dspring-boot.run.arguments="name_bmw time_30 macd_12_26_9"
