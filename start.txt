@@ -8,5 +8,8 @@ rem (first line is treated as a header and skipped)
 rem Run via the packaged jar:
 java -jar target/stock-analyzer.jar name_bmw time_30 csv_bmw_1min.csv ta_macd_12_26_9
 
+rem or select indicators by id (see IndicatorType.java for the full catalog):
+java -jar target/stock-analyzer.jar name_bmw time_30 csv_bmw_1min.csv indicators_1,2,3,4
+
 rem or via the Maven plugin during development:
-mvn spring-boot:run -Dspring-boot.run.arguments="name_bmw time_30 csv_bmw_1min.csv ta_macd_12_26_9"
+mvn spring-boot:run -Dspring-boot.run.arguments="name_bmw time_30 csv_bmw_1min.csv indicators_1,2,3,4"
