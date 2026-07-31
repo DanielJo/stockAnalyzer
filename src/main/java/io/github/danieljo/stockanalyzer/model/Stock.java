@@ -23,6 +23,9 @@ public class Stock {
 	private Double RVI_Difference;
 	private Double RVI;
 
+	/** Only populated for bars sourced from Alpha Vantage's TIME_SERIES_DAILY_ADJUSTED; null otherwise. */
+	private Double AdjustedClose;
+
 	public Stock(String dateTime, String symbol, int intervall, String open,
 			String high, String low, String close, String volume) {
 		super();
@@ -227,6 +230,14 @@ public class Stock {
 
 	public void setZZ_LowTime(String zZ_LowTime) {
 		ZZ_LowTime = zZ_LowTime;
+	}
+
+	public Double getAdjustedClose() {
+		return AdjustedClose;
+	}
+
+	public void setAdjustedClose(Double adjustedClose) {
+		AdjustedClose = adjustedClose;
 	}
 
 }

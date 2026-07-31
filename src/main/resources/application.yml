@@ -1,3 +1,9 @@
 spring:
   application:
     name: stock-analyzer
+
+# Real key belongs in application-local.yml (gitignored, see application-local.yml.example) or the
+# ALPHAVANTAGE_API_KEY env var - never committed here.
+alphavantage:
+  base-url: https://www.alphavantage.co
+  api-key: ${ALPHAVANTAGE_API_KEY:}
