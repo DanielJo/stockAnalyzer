@@ -1,7 +1,7 @@
 # StockAnalyzer
 
-> **Status: work in progress.** This is a documentation draft. There's no GUI yet — see
-> [Known gaps](#known-gaps) below.
+> **Status: work in progress.** This is a documentation draft. There's no GUI yet, and the REST
+> API has no authentication/access control — see [Known gaps](#known-gaps) below.
 
 ## What it does
 
@@ -23,9 +23,10 @@ StockAnalyzer is a command-line tool that:
    column per requested indicator.
 
 It originated as a Java 7, build-file-less CLI tool written for a bachelor's thesis, backed by
-a MySQL database. It's since been rebuilt on Maven + Spring Boot, and the database dependency
-has been removed entirely in favor of CSV file input — both as groundwork for eventually
-adding a GUI, and so the tool doesn't require a live database to run at all.
+a MySQL database. It's since been rebuilt on Maven + Spring Boot, the database dependency has
+been removed entirely in favor of CSV file input, and it's now usable both as a **CLI tool**
+and as a **REST API** (see [REST API](#rest-api) below) — groundwork for a planned Angular
+frontend that will let users submit either a CSV file or a URL (URL input not built yet).
 
 ## How it works (pipeline)
 
@@ -100,23 +101,66 @@ java -jar target/stock-analyzer.jar name_bmw time_30 csv_bmw_30min.csv indicator
 
 ## Architecture
 
-- **Maven / Spring Boot 3.5.x**, Java 17. Runs as a `CommandLineRunner` — still a CLI tool,
-  no web layer (yet).
+- **Maven / Spring Boot 3.5.x**, Java 17.
 - No database, no JDBC/JPA — `MarketDataService` + `CsvImportService` read directly from a
   CSV file.
+- Same jar runs two ways, decided at startup by `StockAnalyzerApplication.main`: if any argument
+  doesn't start with `--` (i.e. looks like one of our CLI tokens rather than a Spring property
+  override), it runs as a one-shot `CommandLineRunner` with no web server involved at all; with
+  no such argument (typically no arguments, or only `--server.port=...`-style ones), it starts
+  as the REST server instead. This matters because adding `spring-boot-starter-web` would
+  otherwise make Spring Boot try to bind a port on every plain CLI invocation too.
+
+## REST API
+
+No authentication/access control (see [Known gaps](#known-gaps)). Analysis runs **asynchronously**:
+submitting one returns immediately with a job id, which you then poll for completion - because
+indicator calculations can take a while, and holding an HTTP request open for that isn't great
+(client/proxy timeouts, no progress feedback, ties up a server thread the whole time).
+
+| Endpoint | Meaning |
+|---|---|
+| `GET /api/indicators` | List every available indicator (`{id, displayName}`, from `IndicatorType`) - e.g. for a picker in the UI. |
+| `POST /api/analyses` | Submit an analysis. `multipart/form-data`: `file` (the CSV), `symbol`, `interval`, optionally `startTime`/`endTime`, `startDate`/`endDate`, `delimiter`, and `indicatorIds` (comma-separated, e.g. `1,3,5`). Returns `202 Accepted` with `{id, status}` and a `Location` header. |
+| `GET /api/analyses/{id}` | Poll status: `{id, status, errorMessage}`, status one of `PENDING`/`RUNNING`/`DONE`/`FAILED`. |
+| `GET /api/analyses/{id}/result` | Once `DONE`, returns the CSV result (`text/csv`, as an attachment). `409` if not ready yet, `404` if the id doesn't exist. |
+
+Example:
+
+```
+curl -F "file=@bmw_30min.csv" -F "symbol=bmw" -F "interval=30" -F "indicatorIds=1,3,5" \
+     http://localhost:8080/api/analyses
+# -> 202 {"id":"...","status":"RUNNING",...}
+
+curl http://localhost:8080/api/analyses/<id>
+# -> {"id":"...","status":"DONE",...}
+
+curl http://localhost:8080/api/analyses/<id>/result
+# -> the CSV
+```
+
+**Jobs run strictly one at a time**, on a single-threaded executor (`AnalysisJobService`) - not
+a scalability choice, a correctness one: `TALibCalculationService` and `CsvImportService` still
+hold their working data in static fields shared by the whole JVM (a limitation carried over from
+the CLI-only era, where only one run ever happened per process). Running two jobs concurrently
+would let them silently overwrite each other's intermediate results. Serializing execution
+sidesteps that without the much larger job of de-static-ing those classes - see
+[Known gaps](#known-gaps).
 
 ## Known gaps
 
-- **No GUI/REST endpoint yet** — this is still CLI-only. The data-loading layer
-  (`MarketDataService.loadBars(InputStream, AnalysisRequest)`) is written so a REST controller
-  can reuse it directly later (see the pipeline diagram above).
-- `AggregateService` (interval aggregation) is currently unused — it was only ever wired to the
+- **No authentication/access control on the REST API** - anyone who can reach it can submit
+  analyses. Fine for local/first-step use, not for exposing it anywhere untrusted.
+- **No GUI yet** - the REST API above is the backend half of the planned Angular frontend.
+- **Jobs are serialized, not concurrent** (see [REST API](#rest-api)) - throughput is limited to
+  one analysis at a time regardless of server resources, until `TALibCalculationService`'s
+  static working state is addressed.
+- **In-memory job store with no eviction** - `AnalysisJobService` keeps every submitted job
+  forever (until restart). Fine short-term / low-traffic, but needs a TTL or a real store before
+  running unattended for long.
+- `AggregateService` (interval aggregation) is currently unused - it was only ever wired to the
   removed DB fallback path. Would need re-wiring if you want to support, say, always-1-minute
   CSV files aggregated to other intervals on demand.
-- Some internal state is still static/shared across the whole JVM (see code comments in
-  `TALibCalculationService` / `CsvImportService`) — fine for one CLI run per process, would
-  need addressing before the app can handle concurrent requests (relevant once a GUI/web
-  layer exists).
 - `start.txt`'s example (`ta_macd_12_26_9`) uses the `ta_` prefix required by the parser — an
   earlier draft of this doc used `macd_12_26_9` without it, which doesn't actually match the
   argument parser; that's now fixed here.

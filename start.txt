@@ -13,3 +13,7 @@ java -jar target/stock-analyzer.jar name_bmw time_30 csv_bmw_1min.csv indicators
 
 rem or via the Maven plugin during development:
 mvn spring-boot:run -Dspring-boot.run.arguments="name_bmw time_30 csv_bmw_1min.csv indicators_1,2,3,4"
+
+rem Run as a REST server instead (no CLI-style argument -> starts the web server on :8080;
+rem see README.md#rest-api for the endpoints):
+java -jar target/stock-analyzer.jar
