@@ -3,6 +3,7 @@ package io.github.danieljo.stockanalyzer;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 /**
  * Bootstrap only - the actual CLI logic lives in {@link io.github.danieljo.stockanalyzer.cli.CliRunner}.
@@ -20,6 +21,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * plain CLI command with no port involved at all.
  */
 @SpringBootApplication
+@ConfigurationPropertiesScan
 public class StockAnalyzerApplication {
 
 	public static void main(String[] args) {

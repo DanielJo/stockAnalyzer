@@ -1,0 +1,4 @@
+# Copy to application-local.yml (gitignored) and fill in your real key, then run with
+# --spring.profiles.active=local (or SPRING_PROFILES_ACTIVE=local) to have it picked up.
+alphavantage:
+  api-key: your-real-alphavantage-api-key

@@ -104,6 +104,11 @@ java -jar target/stock-analyzer.jar name_bmw time_30 csv_bmw_30min.csv indicator
 - **Maven / Spring Boot 3.5.x**, Java 17.
 - No database, no JDBC/JPA — `MarketDataService` + `CsvImportService` read directly from a
   CSV file.
+- **Two bar data sources**, selected by which REST endpoint you call (see
+  [Raw bar lookup](#raw-bar-lookup-apistocks)) rather than a config switch: CSV upload
+  (`CsvImportService`) and [Alpha Vantage](https://www.alphavantage.co/) (`AlphaVantageClient` +
+  `AlphaVantageImportService`, package `io.github.danieljo.stockanalyzer.alphavantage`). Both
+  produce the same `Stock` model, so the rest of the pipeline doesn't care which one supplied it.
 - Same jar runs two ways, decided at startup by `StockAnalyzerApplication.main`: if any argument
   doesn't start with `--` (i.e. looks like one of our CLI tokens rather than a Spring property
   override), it runs as a one-shot `CommandLineRunner` with no web server involved at all; with
@@ -147,8 +152,54 @@ would let them silently overwrite each other's intermediate results. Serializing
 sidesteps that without the much larger job of de-static-ing those classes - see
 [Known gaps](#known-gaps).
 
+### Raw bar lookup (`/api/stocks`)
+
+Separate from the analysis/job workflow above: these two endpoints just fetch OHLCV bars and
+return them as JSON, synchronously, with no indicator calculation. There's no global data-source
+switch - which endpoint you call *is* the source selection.
+
+| Endpoint | Meaning |
+|---|---|
+| `POST /api/stocks/csv/{symbol}` | Same CSV parsing as `/api/analyses` (`multipart/form-data`: `file`, `interval`, optionally `startTime`/`endTime`, `startDate`/`endDate`, `delimiter`), but returns the parsed bars directly instead of queuing an analysis. |
+| `GET /api/stocks/alphavantage/{symbol}` | Fetches daily bars from [Alpha Vantage](https://www.alphavantage.co/documentation/). Query params: `function` (`TIME_SERIES_DAILY`, default, or `TIME_SERIES_DAILY_ADJUSTED`), `outputsize` (`compact`, default = latest 100 bars, or `full` = 20+ years). |
+
+Both return the same shape, one entry per bar:
+
+```json
+[{"dateTime": "2024-01-15 00:00:00", "open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5,
+  "volume": 900, "adjustedClose": null}]
+```
+
+`adjustedClose` is only non-null for `TIME_SERIES_DAILY_ADJUSTED` bars. Alpha Vantage daily bars
+carry no time-of-day, so `dateTime` is always stamped at midnight, and the bar's `interval` (not
+shown in the response, but stored on the underlying `Stock`) is fixed at 1440 (minutes/day).
+
+Example:
+
+```
+curl "http://localhost:8080/api/stocks/alphavantage/IBM?function=TIME_SERIES_DAILY_ADJUSTED&outputsize=compact"
+```
+
+**Configuring the Alpha Vantage API key**: get a free key at
+[alphavantage.co/support/#api-key](https://www.alphavantage.co/support/#api-key), then either
+- set the `ALPHAVANTAGE_API_KEY` environment variable, or
+- copy `src/main/resources/application-local.yml.example` to `application-local.yml` (already
+  gitignored) and fill in `alphavantage.api-key`, then run with `--spring.profiles.active=local`.
+
+The key is never checked in - `application.yml` only references the env var, defaulting to empty.
+
+**Alpha Vantage error handling**: the API answers every request with HTTP 200, even for an
+invalid symbol or a hit rate limit - the actual error is a `"Error Message"`, `"Note"` or
+`"Information"` field in the JSON body instead of a data payload. `AlphaVantageClient` detects
+this and throws `AlphaVantageException`, which `StockDataController` maps to `400 Bad Request`
+(invalid symbol/params) or `429 Too Many Requests` (rate limit). The free tier caps out at **25
+requests/day**, so `AlphaVantageClientTest` runs against a WireMock stub rather than the real API.
+
 ## Known gaps
 
+- **`TIME_SERIES_DAILY_ADJUSTED` may require a premium Alpha Vantage key** - Alpha Vantage has
+  moved some "adjusted" endpoints behind paid tiers for newer API keys; a `403`/entitlement error
+  from Alpha Vantage for that `function` value is an account limitation, not a bug here.
 - **No authentication/access control on the REST API** - anyone who can reach it can submit
   analyses. Fine for local/first-step use, not for exposing it anywhere untrusted.
 - **No GUI yet** - the REST API above is the backend half of the planned Angular frontend.
